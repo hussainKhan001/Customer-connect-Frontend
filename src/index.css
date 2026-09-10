@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #F5F7FA;
+  --bg-secondary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --border: #E2E8F0;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --accent: #FF7A00;
+
+  --theme-primary: #f97316;
+  --theme-primary-light: #fb923c;
+  --theme-primary-dark: #ea580c;
+}
+
+[data-theme="dark"],
+.dark {
+  --bg-primary: #0F172A;
+  --bg-secondary: #172033;
+  --bg-card: #1E293B;
+  --border: #334155;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --accent: #FF7A00;
+}
+
+@layer base {
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .theme-bg { background-color: var(--theme-primary); }
+  .theme-bg-hover:hover { background-color: var(--theme-primary-dark); }
+  .theme-bg-dark { background-color: var(--theme-primary-dark); }
+  .theme-text { color: var(--theme-primary); }
+  .theme-text-light { color: var(--theme-primary-light); }
+  .theme-border { border-color: var(--theme-primary); }
+  .theme-ring { --tw-ring-color: var(--theme-primary); }
+  .theme-nav-hover:hover { color: var(--theme-primary); }
+  .theme-gradient { background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark)); }
+
+  /* Custom scrollbars applied only to designated scroll areas */
+  .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.4) transparent; }
+  .dark .custom-scrollbar { scrollbar-color: rgba(75, 85, 99, 0.4) transparent; }
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.35); border-radius: 9999px; }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(75, 85, 99, 0.5); }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--theme-primary); }
+
+  .custom-horizontal-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.3) transparent; }
+  .custom-horizontal-scrollbar::-webkit-scrollbar { height: 5px; }
+  .custom-horizontal-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.35); border-radius: 9999px; }
+  .dark .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(75, 85, 99, 0.5); }
+  .custom-horizontal-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--theme-primary); }
+
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Glassmorphism helpers */
+  .glass-header {
+    @apply bg-white/85 dark:bg-gray-900/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800/60 shadow-xs;
+  }
+  .glass-panel {
+    @apply bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/60 dark:border-gray-800/60 shadow-sm;
+  }
+  .glass-card {
+    @apply bg-white/95 dark:bg-gray-900/95 border border-gray-200/70 dark:border-gray-800/70 shadow-xs hover:shadow-md transition-all duration-200;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* sweetalert2 must sit above everything, including the sidebar
+   (z-[9999]) and the ThemedSelect popup (z-[10050]) — otherwise a
+   confirm/warning dialog doesn't actually block interaction with the
+   rest of the app, defeating the point of a modal. */
+.swal2-container { z-index: 99999 !important; }
+
+/* Browsers drop background colours/gradients on print by default
+   (Chrome's "Background graphics" print option is off unless the page
+   asks otherwise) — without this, the Portfolio Statement's branded
+   header prints as plain black-on-white text, not the document it's
+   designed to look like. */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+}
