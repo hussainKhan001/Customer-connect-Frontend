@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, Pencil, Trash2, Search, Building2, Home, Layers, Sparkles, Users } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useApp } from '../context/AppContext.jsx';
@@ -98,8 +98,31 @@ export default function OwnerBase() {
   }, [base, filters.seg, filters.proj, filters.unit, filters.ent, filters.status, filters.q, sort.k, sort.dir]);
 
   const { page, setPage, totalPages, pageItems: pagedRows } = usePagination(rows, {
-    pageSize: PAGE_SIZE, resetKey: filters,
+    pageSize: PAGE_SIZE, resetKey: filters, persistKey: 'ownerbase',
   });
+
+  /* Opening an owner and clicking "Back to Owner Base" used to always
+     land back at the very top — <Routes> unmounts this whole page on
+     navigation, so the table's own scroll position (inside its
+     max-h-[65vh] scroll well, not the page/window) was never kept
+     anywhere. Restored once, after the current page's rows are in the
+     DOM to scroll to; saved continuously while scrolling so a
+     mid-session tab close/crash doesn't lose it either. */
+  const tableScrollRef = useRef(null);
+  const hasRestoredScroll = useRef(false);
+  useEffect(() => {
+    if (hasRestoredScroll.current) return;
+    const el = tableScrollRef.current;
+    if (!el || !pagedRows.length) return; // wait until there's real content to scroll into
+    try {
+      const saved = Number(sessionStorage.getItem('scrollTop:ownerbase'));
+      if (saved > 0) el.scrollTop = saved;
+    } catch { /* ignore */ }
+    hasRestoredScroll.current = true;
+  }, [pagedRows]);
+  const saveTableScroll = () => {
+    try { sessionStorage.setItem('scrollTop:ownerbase', String(tableScrollRef.current?.scrollTop || 0)); } catch { /* ignore */ }
+  };
 
   /* project-wise breakdown, clickable straight into the Project
      filter — same "tile as filter shortcut" pattern as Command
@@ -255,7 +278,7 @@ export default function OwnerBase() {
 
 
       <Card pad={false} className="overflow-hidden">
-        <TableWrap maxHeight="65vh">
+        <TableWrap maxHeight="65vh" ref={tableScrollRef} onScroll={saveTableScroll}>
           <table className="w-full border-collapse">
             <thead>
               <tr>

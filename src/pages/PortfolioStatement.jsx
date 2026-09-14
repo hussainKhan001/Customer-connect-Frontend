@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MessageCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useApp } from '../context/AppContext.jsx';
 import { useCurrentCustomer } from '../hooks/useCurrentCustomer.js';
 import { Card, btnGhost } from '../components/Ui.jsx';
+import PortfolioDashboard from '../components/PortfolioDashboard.jsx';
 import ThemedSelect from '../components/theme/ThemedSelect.jsx';
 import { TODAY, fmtD, inr, inrF, displayName } from '../utils/core.js';
 import { roll } from '../utils/derived.js';
@@ -36,6 +38,11 @@ export default function PortfolioStatement() {
   const { base, patchCustomer, settings } = useApp();
   const S = settings || SETTINGS_DEFAULTS;
   const navigate = useNavigate();
+  /* Letter is the formal, print-first document (see the theme-forcing
+     effect below); Dashboard is the same owner's numbers read as a
+     glance-able screen instead — same picker, same Print/PDF + send-
+     log flow, just a different rendering of the same roll(c). */
+  const [view, setView] = useState('letter');
 
   /* a customer-facing statement is a formal document, not the app's
      own UI — it should read the same on paper whether the person
@@ -61,18 +68,18 @@ export default function PortfolioStatement() {
     };
   }, []);
 
-  const printAndLog = async (customerId) => {
-    window.print();
-    /* the print itself isn't gated on this — a failed log shouldn't
-       stop the user's already-requested print — but a successful send
-       should show up in Statement Send Log without a page reload, and
-       a role-based denial (403, per the PERMS matrix) should actually
-       be shown, not silently swallowed */
+  /* shared by both send actions below — a failed log shouldn't stop
+     what the user already asked for (a print, or WhatsApp already
+     opened in a new tab), but a successful send should show up in
+     Statement Send Log without a page reload, and a role-based denial
+     (403, per the PERMS matrix) should actually be shown, not silently
+     swallowed. */
+  const logSend = async (customerId, ch) => {
     try {
       const res = await apiFetch(`/api/customers/${customerId}/statements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ch: 'WhatsApp PDF' }),
+        body: JSON.stringify({ ch }),
       });
       if (res.ok) {
         patchCustomer(await res.json());
@@ -83,6 +90,40 @@ export default function PortfolioStatement() {
     } catch {
       // offline/unreachable — the seeded/previous send history still renders fine
     }
+  };
+
+  const printAndLog = (customerId) => {
+    window.print();
+    logSend(customerId, 'WhatsApp PDF');
+  };
+
+  /* Opens WhatsApp (app on mobile, Web on desktop) with the owner's
+     own mobile number and a pre-filled message — this only pre-fills
+     text, it can't attach the statement itself, so the flow is still
+     "Print / save as PDF" first, then this to send it: the owner
+     never sees the app or logs in, exactly the WhatsApp PDF channel
+     Statement Send Log already tracks. Held back if no mobile is on
+     record — there's nowhere to open the chat to. */
+  const shareOnWhatsApp = (c, r) => {
+    const digits = (c.mobile || '').replace(/\D/g, '');
+    if (digits.length < 10) {
+      Swal.fire({ icon: 'warning', title: 'No mobile on record', text: 'Add a mobile number to this owner\'s profile before sharing on WhatsApp.' });
+      return;
+    }
+    const phone = digits.length === 10 ? `91${digits}` : digits;
+    const gainPct = r.consideration > 0 ? (r.gain / r.consideration) * 100 : 0;
+    const message = [
+      `Dear ${c.salutation ? c.salutation + ' ' : ''}${c.name},`,
+      '',
+      `Here is your portfolio summary with ${S.companyName} as on ${fmtD(TODAY)}:`,
+      `• Value today: ${inrF(r.value)}`,
+      `• Unrealised gain: ${inrF(r.gain)} (${gainPct.toFixed(0)}%)`,
+      `• Outstanding: ${inrF(r.outstanding)}`,
+      '',
+      'Please find the detailed statement attached separately.',
+    ].join('\n');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    logSend(c.id, 'WhatsApp PDF');
   };
 
   /* the picker only ever offers owners the gate has cleared */
@@ -128,18 +169,42 @@ export default function PortfolioStatement() {
           options={ownerOptions}
           className="w-full sm:w-auto sm:min-w-[340px] sm:max-w-[340px]"
         />
+        <div className="flex rounded-full border border-gray-200 dark:border-gray-700 p-0.5 bg-gray-50 dark:bg-gray-800/80">
+          {[['letter', 'Letter'], ['dashboard', 'Dashboard']].map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => setView(k)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                view === k ? 'bg-primary-500 text-white shadow-2xs' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
         <button className={`${btnGhost} text-xs px-2.5 py-1.5`} onClick={() => printAndLog(c.id)}>
           Print / save as PDF
+        </button>
+        <button
+          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl font-semibold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+          onClick={() => shareOnWhatsApp(c, r)}
+          title={c.mobile ? `Opens WhatsApp for ${c.mobile}` : 'No mobile on record'}
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+          Share on WhatsApp
         </button>
         <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
           {base.filter((x) => x._blocked).length} blocked owners are excluded from this picker by design.
         </span>
       </div>
 
+      {view === 'dashboard' && <PortfolioDashboard c={c} r={r} companyName={S.companyName} />}
+
       {/* the document itself is deliberately theme-invariant — a formal
          letter reads the same on paper regardless of which UI theme
          happened to be active when it was generated, so nothing below
          this line carries a dark: variant. */}
+      {view === 'letter' && (
       <div className="bg-white text-gray-900 max-w-[790px] mx-auto shadow-md print:shadow-none p-8 sm:p-10 font-serif text-[12.5px] leading-relaxed print:max-w-none">
 
         {/* 1. Letterhead */}
@@ -266,7 +331,9 @@ export default function PortfolioStatement() {
           <span>Page 1 of 1</span>
         </div>
       </div>
+      )}
 
+      {view === 'letter' && (
       <Card title="Why this page is the whole platform" className="max-w-[790px] mx-auto mt-4 print:hidden">
         <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
           This single page does three jobs. It is a <b>loyalty product</b> no builder in Gwalior currently
@@ -277,6 +344,7 @@ export default function PortfolioStatement() {
           statement is also an invitation to audit your own ledger.
         </div>
       </Card>
+      )}
     </>
   );
 }

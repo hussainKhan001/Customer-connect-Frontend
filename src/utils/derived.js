@@ -238,6 +238,28 @@ export function triggerList(base, incompleteBase = []) {
    dots when it's true, and stops dotting the moment it's acked ---- */
 export const dueTodayUnacked = (list) => list.filter((t) => t.days === 0 && !t.acked);
 
+/* Manual, staff-written reminders (see FollowUpSchema) — surfaced by
+   the header bell the same way the system-computed triggerList()
+   above is, so "call back Tuesday about the loan" shows up exactly
+   like a birthday does. Only overdue-or-due-right-now, unfinished ones
+   are returned — a follow-up scheduled for next week doesn't belong
+   in "what needs attention right now" the way a same-day birthday
+   does; it'll appear here on its own the moment its time arrives. */
+export function followUpsDue(base) {
+  const now = new Date();
+  const out = [];
+  base.forEach((c) => {
+    if (c._blocked) return;
+    (c.followUps || []).forEach((f) => {
+      if (f.done) return;
+      const dueAt = new Date(f.dueAt);
+      if (dueAt > now) return;
+      out.push({ c, id: f._id, note: f.note, dueAt });
+    });
+  });
+  return out.sort((a, b) => a.dueAt - b.dueAt);
+}
+
 /* ---- per-owner document vault ---- */
 /* `key` is a stable identifier for each row, used to match an actual
    uploaded file (c.documents[]) to the checklist row it belongs to —

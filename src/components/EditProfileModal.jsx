@@ -4,6 +4,7 @@
    plus the adjacent identity fields shown alongside them in the
    Customer Master rail (co-applicant, email, city, community). */
 import { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 import { useApp } from '../context/AppContext.jsx';
 import { BtnPrimary, btnGhost, formLabelCls as lblCls, formInputCls as inputCls, formErrorCls as errCls } from './Ui.jsx';
 import Modal from './Modal.jsx';
@@ -12,7 +13,10 @@ import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedCheckbox from './theme/ThemedCheckbox.jsx';
 import { toDateInput, displayName } from '../utils/core.js';
 import { OCC, COMM } from '../constants/seedData.js';
-import { toast } from '../utils/toast.js';
+import { STATUSLBL } from '../constants/segments.js';
+import { toast, CONFIRM_COLOR } from '../utils/toast.js';
+
+const STATUS_OPTIONS = Object.entries(STATUSLBL).map(([value, label]) => ({ value, label }));
 
 const RELATIONS = ['Spouse', 'Parent', 'Sibling', 'Child', 'Other'];
 const CONSENT_ROWS = [
@@ -33,6 +37,7 @@ function draftFrom(c) {
     mobile: c.mobile || '',
     pan: c.pan || '',
     aadhaarHeld: !!c.aadhaarHeld,
+    aadhaarNo: c.aadhaarNo || '',
     ownerType: c.ownerType || '',
     source: c.source || '',
     dob: toDateInput(c.dob),
@@ -50,11 +55,14 @@ function draftFrom(c) {
       whatsapp: !!c.consent.whatsapp, sms: !!c.consent.sms, email: !!c.consent.email,
       marketing: !!c.consent.marketing, children: !!c.consent.children, purpose: c.consent.purpose || '',
     },
+    status: c.status,
+    statusNote: c.statusNote || '',
+    litigation: !!c.litigation,
   };
 }
 
 export default function EditProfileModal({ customer, onClose }) {
-  const { updateProfile } = useApp();
+  const { updateProfile, mutateCustomer } = useApp();
   const [draft, setDraft] = useState(() => draftFrom(customer));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -69,9 +77,37 @@ export default function EditProfileModal({ customer, onClose }) {
     setDraft((d) => ({ ...d, consent: { ...d.consent, [k]: e.target.value } }));
 
   const save = async () => {
+    /* Status and litigation both close the Contact Gate the instant
+       they save (see GATE_ORDER in derived.js) — folded into this one
+       form for convenience, but still worth one explicit confirmation
+       naming exactly what's about to change, same as when each had its
+       own dedicated modal/button. Declining leaves the whole save
+       cancelled — the profile fields alone are a quick re-click away
+       once status/litigation are reverted. */
+    const statusChanged = draft.status !== customer.status || draft.statusNote !== (customer.statusNote || '');
+    const litigationChanged = draft.litigation !== !!customer.litigation;
+    if (statusChanged || litigationChanged) {
+      const warnings = [];
+      if (statusChanged && draft.status !== 'ACTIVE') warnings.push(`Status → <b>${STATUSLBL[draft.status]}</b> immediately closes the contact gate.`);
+      if (statusChanged && draft.status === 'ACTIVE' && customer.status !== 'ACTIVE') warnings.push('Status → <b>Active</b> reopens the contact gate (unless something else still blocks it).');
+      if (litigationChanged && draft.litigation) warnings.push('Flagging <b>litigation</b> immediately closes the contact gate.');
+      if (litigationChanged && !draft.litigation) warnings.push('Clearing <b>litigation</b> reopens contact — confirm it is actually resolved.');
+      const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Confirm gate-affecting changes',
+        html: warnings.map((w) => `• ${w}`).join('<br/>'),
+        showCancelButton: true,
+        confirmButtonText: 'Save all changes',
+        confirmButtonColor: CONFIRM_COLOR.destructive,
+      });
+      if (!result.isConfirmed) return;
+    }
+
     setSaving(true);
     try {
       await updateProfile(customer.id, draft);
+      if (statusChanged) await mutateCustomer(`/api/customers/${customer.id}/status`, { status: draft.status, statusNote: draft.statusNote });
+      if (litigationChanged) await mutateCustomer(`/api/customers/${customer.id}/litigation`, { litigation: draft.litigation });
       toast.success('Profile updated', `${customer.name}'s details are saved.`);
       onClose();
     } catch (err) {
@@ -131,7 +167,18 @@ export default function EditProfileModal({ customer, onClose }) {
             <input value={draft.source} onChange={set('source')} className={inputCls(false)} placeholder="e.g. Referral, Walk-in, Broker" />
           </div>
 
-          <div className="sm:col-span-2">
+          <div>
+            <label className={lblCls}>Aadhaar number</label>
+            <input
+              value={draft.aadhaarNo}
+              onChange={set('aadhaarNo')}
+              className={inputCls(!!errors.aadhaarNo)}
+              placeholder="Not captured"
+              maxLength={14}
+            />
+            {errors.aadhaarNo && <div className={errCls}>{errors.aadhaarNo}</div>}
+          </div>
+          <div className="flex items-end pb-2">
             <ThemedCheckbox
               checked={draft.aadhaarHeld}
               onChange={(v) => setDraft((d) => ({ ...d, aadhaarHeld: v }))}
@@ -227,6 +274,37 @@ export default function EditProfileModal({ customer, onClose }) {
               placeholder="e.g. Portfolio statements and re-investment offers"
             />
           </div>
+
+          <div className="sm:col-span-2 border-t border-gray-100 dark:border-gray-700 pt-4 mt-1">
+            <div className="text-xs font-bold text-gray-800 dark:text-gray-100 mb-2">Status &amp; legal</div>
+          </div>
+          <div>
+            <label className={lblCls}>Status</label>
+            <ThemedSelect value={draft.status} onChange={setVal('status')} options={STATUS_OPTIONS} />
+          </div>
+          <div>
+            <label className={lblCls}>Status note {draft.status !== 'ACTIVE' && '(required)'}</label>
+            <input
+              value={draft.statusNote}
+              onChange={set('statusNote')}
+              className={inputCls(!!errors.statusNote)}
+              placeholder="Why is this changing — registry search finding, family communication, etc."
+            />
+            {errors.statusNote && <div className={errCls}>{errors.statusNote}</div>}
+          </div>
+
+          <div className="sm:col-span-2">
+            <ThemedCheckbox
+              checked={draft.litigation}
+              onChange={(v) => setDraft((d) => ({ ...d, litigation: v }))}
+              label="Litigation flag"
+            />
+          </div>
+          {(draft.status !== 'ACTIVE' || draft.litigation) && (
+            <div className="sm:col-span-2 text-xs text-amber-600 dark:text-amber-400 leading-relaxed -mt-2">
+              This immediately closes the contact gate — no role can override it.
+            </div>
+          )}
       </div>
     </Modal>
   );

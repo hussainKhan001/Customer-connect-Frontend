@@ -7,24 +7,29 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
 import Modal from './Modal.jsx';
+import ThemedSelect from './theme/ThemedSelect.jsx';
+import { PROJECTS } from '../constants/projects.js';
 import { toast } from '../utils/toast.js';
+
+const PROJ_OPTS = PROJECTS.map((p) => ({ value: p.name, label: p.name }));
 
 export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose }) {
   const { mutateCustomer } = useApp();
   const [draft, setDraft] = useState({
-    unit: unit.unit || '', saleable: unit.saleable ?? '', carpet: unit.carpet ?? '',
+    project: unit.project || '', unit: unit.unit || '', saleable: unit.saleable ?? '', carpet: unit.carpet ?? '',
     loading: unit.loading ?? 0, rate: unit.rate ?? '',
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   const set = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
+  const setVal = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
 
   const save = async () => {
     setSaving(true);
     try {
       await mutateCustomer(`/api/customers/${customer.id}/units/${unitIndex}/financials`, {
-        unit: unit.unit, project: unit.project, newUnit: draft.unit,
+        unit: unit.unit, project: unit.project, newUnit: draft.unit, newProject: draft.project,
         saleable: draft.saleable, carpet: draft.carpet, loading: draft.loading, rate: draft.rate,
       });
       toast.success('Unit updated', `${draft.unit} — area and rate saved.`);
@@ -55,7 +60,17 @@ export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose
       }
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2">
+        <div>
+          <label className={formLabelCls}>Project</label>
+          <ThemedSelect
+            value={draft.project}
+            onChange={setVal('project')}
+            options={PROJ_OPTS}
+            className={errors.newProject ? '[&>button]:border-red-400' : ''}
+          />
+          {errors.newProject && <div className={formErrorCls}>{errors.newProject}</div>}
+        </div>
+        <div>
           <label className={formLabelCls}>Unit number</label>
           <input value={draft.unit} onChange={set('unit')} className={formInputCls(!!errors.newUnit)} placeholder="e.g. A-188" />
           {errors.newUnit && <div className={formErrorCls}>{errors.newUnit}</div>}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
+import { Pencil, ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { useCurrentCustomer } from '../hooks/useCurrentCustomer.js';
@@ -72,6 +72,14 @@ export default function CustomerMaster() {
   return (
     <>
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 pt-4 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 rounded-t-lg">
+        <button
+          onClick={() => navigate('/base')}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white mb-3"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to Owner Base
+        </button>
+
         <div className="flex gap-3.5 items-start flex-wrap">
           <div
             className="w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center text-white text-lg font-bold shadow-sm"
@@ -104,7 +112,7 @@ export default function CustomerMaster() {
             className="w-full sm:w-72"
             value={c.id}
             onChange={(v) => navigate(`/master/${v}/overview`, { replace: true })}
-            options={base.slice(0, 80).map((x) => ({ value: x.id, label: `${x.name} — ${STATUSLBL[x.status]}` }))}
+            options={base.map((x) => ({ value: x.id, label: `${x.name} — ${STATUSLBL[x.status]}` }))}
           />
         </div>
 
@@ -170,10 +178,18 @@ function Rail({ c, cf, weights, onStatement, onEditProfile, onLogCall }) {
 
   return (
     <>
-      <Card title="Identity">
+      <Card
+        title="Identity"
+        hint={
+          <button onClick={onEditProfile} className="inline-flex items-center gap-1 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold">
+            <Pencil className="w-3 h-3" />Edit
+          </button>
+        }
+      >
         <KV>
           <Row k="Customer ID" v={c.id} />
           <Row k="PAN" v={c.pan} />
+          <Row k="Aadhaar number" v={c.aadhaarNo} />
           <Row k="KYC completed" v={fmtD(c.kycDate)} />
           <Row
             k="Co-applicant"

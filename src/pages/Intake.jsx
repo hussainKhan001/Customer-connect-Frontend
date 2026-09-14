@@ -218,7 +218,27 @@ export default function Intake() {
           (c.units || []).some((u) => u && u.unit && (u.unit === unit || u.unit.endsWith('-' + unit)) && (!project || u.project === project))
         );
         if (!matches.length) {
-          held.push({ rowNumber, row, reason: `No owner found holding unit "${unit}"${project ? ` in ${project}` : ''}.` });
+          /* the Project column itself is sometimes just wrong in a real
+             sheet (a unit genuinely owned in Regal Garden, logged
+             against Eden Garden) — searching every project for the
+             same unit number turns a flat "no owner found" into a
+             pointer at exactly what to fix in the sheet, without ever
+             guessing which project to actually file the complaint
+             under. */
+          const elsewhere = project
+            ? base.filter((c) => (c.units || []).some((u) => u && u.unit && (u.unit === unit || u.unit.endsWith('-' + unit)) && u.project !== project))
+            : [];
+          if (elsewhere.length) {
+            const hits = elsewhere.flatMap((c) => (c.units || [])
+              .filter((u) => u && u.unit && (u.unit === unit || u.unit.endsWith('-' + unit)) && u.project !== project)
+              .map((u) => `${c.name} — ${u.project}/${u.unit}`));
+            held.push({
+              rowNumber, row,
+              reason: `No owner found holding unit "${unit}" in ${project} — but it exists under a different project: ${hits.join(', ')}. Check the Project column.`,
+            });
+          } else {
+            held.push({ rowNumber, row, reason: `No owner found holding unit "${unit}"${project ? ` in ${project}` : ''}.` });
+          }
           continue;
         }
         if (matches.length > 1) {

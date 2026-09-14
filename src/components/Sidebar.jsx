@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { daysTo } from '../utils/core.js';
@@ -13,6 +13,7 @@ import { X } from 'lucide-react';
 export default function Sidebar({ mobileOpen = false, onCloseMobile, collapsed = false }) {
   const { base, incompleteRecords } = useApp();
   const { getThemeColor } = useTheme();
+  const location = useLocation();
 
   const ex = exceptions(base).length;
   const stale = PROJECTS.filter((p) => daysTo(p.noted) < -VAL_STALE_DAYS).length;
@@ -72,11 +73,20 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, collapsed =
                   to={`/${p.path}`}
                   title={collapsed ? p.label : undefined}
                   onClick={() => onCloseMobile?.()}
-                  className={({ isActive }) => `flex items-center gap-3 text-left rounded-xl px-3.5 py-2.5 text-[13px] ${collapsed ? 'lg:justify-center lg:px-0' : ''} ${
-                    isActive
-                      ? 'font-bold bg-[#FFF0E6] dark:bg-[#34241D] text-[#F96302] dark:text-[#FF7A28] shadow-2xs'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
-                  }`}
+                  className={({ isActive }) => {
+                    /* Customer Master isn't a sidebar destination of its
+                       own (see the filter above) — it's only ever
+                       reached by drilling into an owner from Owner
+                       Base, so while it's open, Owner Base stays the
+                       active item rather than the sidebar showing
+                       nothing selected. */
+                    const active = isActive || (p.id === 'base' && location.pathname.startsWith('/master'));
+                    return `flex items-center gap-3 text-left rounded-xl px-3.5 py-2.5 text-[13px] ${collapsed ? 'lg:justify-center lg:px-0' : ''} ${
+                      active
+                        ? 'font-bold bg-[#FFF0E6] dark:bg-[#34241D] text-[#F96302] dark:text-[#FF7A28] shadow-2xs'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
+                    }`;
+                  }}
                 >
                   <span className="relative flex-shrink-0">
                     <Icon className="w-4.5 h-4.5 transition-transform duration-200" />

@@ -3,7 +3,7 @@
    to the Tailwind/dark-mode design system (see UI_STYLE_GUIDE.md).
    Prop shapes are unchanged from the original so views keep working.
    ===================================================================== */
-import { Children } from 'react';
+import { Children, forwardRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { initials } from '../utils/core.js';
@@ -250,14 +250,20 @@ export function StatsCards({ cards, activeFilter, onCardClick, className = '' })
    push the whole page's scrollbar out — pass it on any table whose
    row count can get large enough that scrolling the page itself to
    read a bottom row stops feeling like a data grid. */
-export const TableWrap = ({ children, maxHeight }) => (
+/* forwardRef so a page that scrolls its own row list back to where the
+   user left it (see OwnerBase's scroll-restore-on-back) has something
+   to read/set scrollTop on — plain children have no DOM node of their
+   own to grab. */
+export const TableWrap = forwardRef(({ children, maxHeight, ...rest }, ref) => (
   <div
+    ref={ref}
     className={`overflow-x-auto custom-horizontal-scrollbar ${maxHeight ? 'overflow-y-auto custom-scrollbar' : ''}`}
     style={maxHeight ? { maxHeight } : undefined}
+    {...rest}
   >
     {children}
   </div>
-);
+));
 
 export const Timeline = ({ children }) => <ul className="list-none m-0 p-0">{children}</ul>;
 

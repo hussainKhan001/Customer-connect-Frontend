@@ -16,17 +16,34 @@ import { useTheme } from '../../context/ThemeContext.jsx';
    Dates are parsed/built from their Y/M/D parts rather than through
    new Date(string): a date-only string parses as UTC midnight, which
    renders as the previous day in any timezone behind UTC — the same
-   trap todayInput() in utils/core.js documents. */
+   trap todayInput() in utils/core.js documents.
+
+   `withTime` extends the same themed popup with a time-of-day row —
+   value becomes "YYYY-MM-DDTHH:mm" (what a native `datetime-local`
+   input already produces, so a follow-up's dueAt round-trips exactly
+   the same either way). Picking a day no longer closes the popup in
+   this mode — there's a time still to set — so an explicit "Set"
+   button commits both together; every date-only caller is unaffected
+   since this prop defaults to false. */
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const parse = (s) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''));
-  return m ? { y: +m[1], mo: +m[2] - 1, d: +m[3] } : null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(String(s || ''));
+  if (!m) return null;
+  return { y: +m[1], mo: +m[2] - 1, d: +m[3], h: m[4] !== undefined ? +m[4] : null, min: m[5] !== undefined ? +m[5] : null };
 };
-const toValue = (y, mo, d) => `${y}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-const label = (p) => new Date(p.y, p.mo, p.d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+const toValue = (y, mo, d, h, min) => {
+  const datePart = `${y}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  return h == null ? datePart : `${datePart}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+};
+const label = (p) => {
+  const datePart = new Date(p.y, p.mo, p.d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (p.h == null) return datePart;
+  const timePart = new Date(2000, 0, 1, p.h, p.min).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${datePart}, ${timePart}`;
+};
 
 export default function ThemedDate({
   value,
@@ -35,6 +52,7 @@ export default function ThemedDate({
   className = '',
   invalid = false,
   disabled = false,
+  withTime = false,
 }) {
   const { getThemeColor } = useTheme();
   const [open, setOpen] = useState(false);
@@ -50,14 +68,22 @@ export default function ThemedDate({
     return { y: n.getFullYear(), mo: n.getMonth(), d: n.getDate() };
   }, []);
   const [view, setView] = useState(() => picked || today);
+  /* the in-progress day+time selection while withTime's popup is still
+     open — separate from `picked` (the committed value) so choosing a
+     day and then a time are two steps that both land in one onChange. */
+  const [pendingDay, setPendingDay] = useState(null);
+  const [pendingTime, setPendingTime] = useState('12:00');
 
   useEffect(() => {
     if (!open) return;
     const r = triggerRef.current.getBoundingClientRect();
     setRect(r);
-    setFlipUp(window.innerHeight - r.bottom < 340 && r.top > 340);
+    setFlipUp(window.innerHeight - r.bottom < 400 && r.top > 400);
     setMode('days');
-    setView(parse(value) || today);
+    const p = parse(value);
+    setView(p || today);
+    setPendingDay(p ? { y: p.y, mo: p.mo, d: p.d } : null);
+    setPendingTime(p && p.h != null ? `${String(p.h).padStart(2, '0')}:${String(p.min).padStart(2, '0')}` : '12:00');
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -81,7 +107,17 @@ export default function ThemedDate({
     };
   }, [open]);
 
-  const commit = (y, mo, d) => { onChange(toValue(y, mo, d)); setOpen(false); };
+  const commit = (y, mo, d) => {
+    if (withTime) { setPendingDay({ y, mo, d }); return; }
+    onChange(toValue(y, mo, d));
+    setOpen(false);
+  };
+  const commitWithTime = () => {
+    if (!pendingDay) return;
+    const [h, min] = pendingTime.split(':').map(Number);
+    onChange(toValue(pendingDay.y, pendingDay.mo, pendingDay.d, h, min));
+    setOpen(false);
+  };
   const shiftMonth = (n) => setView((v) => {
     const t = new Date(v.y, v.mo + n, 1);
     return { y: t.getFullYear(), mo: t.getMonth(), d: 1 };
@@ -157,7 +193,9 @@ export default function ThemedDate({
                 <div className="grid grid-cols-7 gap-0.5">
                   {cells.map((d, i) => {
                     if (d === null) return <div key={i} />;
-                    const isPicked = picked && picked.y === view.y && picked.mo === view.mo && picked.d === d;
+                    const isPicked = withTime
+                      ? pendingDay && pendingDay.y === view.y && pendingDay.mo === view.mo && pendingDay.d === d
+                      : picked && picked.y === view.y && picked.mo === view.mo && picked.d === d;
                     const isToday = today.y === view.y && today.mo === view.mo && today.d === d;
                     return (
                       <button
@@ -209,15 +247,39 @@ export default function ThemedDate({
             )}
           </div>
 
+          {withTime && (
+            <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-[11.5px] font-semibold text-gray-600 dark:text-gray-300">Time</span>
+              <input
+                type="time"
+                value={pendingTime}
+                onChange={(e) => setPendingTime(e.target.value)}
+                className="border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-[12.5px] bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+              />
+            </div>
+          )}
+
           <div className="flex items-center justify-between px-2 py-2 border-t border-gray-100 dark:border-gray-700">
-            <button
-              type="button"
-              onClick={() => commit(today.y, today.mo, today.d)}
-              className="px-2 py-1 rounded-lg text-[11.5px] font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 "
-              style={{ color: getThemeColor() }}
-            >
-              Today
-            </button>
+            {withTime ? (
+              <button
+                type="button"
+                onClick={commitWithTime}
+                disabled={!pendingDay}
+                className="px-2.5 py-1 rounded-lg text-[11.5px] font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ backgroundColor: getThemeColor() }}
+              >
+                Set
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => commit(today.y, today.mo, today.d)}
+                className="px-2 py-1 rounded-lg text-[11.5px] font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 "
+                style={{ color: getThemeColor() }}
+              >
+                Today
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { onChange(''); setOpen(false); }}

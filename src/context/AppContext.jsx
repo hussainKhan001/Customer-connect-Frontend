@@ -47,10 +47,12 @@ export function AppProvider({ children }) {
      to the schema's own defaults (already present in the GET response
      even before anyone edits them) so every consumer always has real
      values to render, never an undefined mid-fetch flash. */
-  useEffect(() => {
-    if (!user) return;
+  const fetchSettings = useCallback(() => {
     apiFetch('/api/settings').then((r) => r.ok && r.json()).then((data) => data && setSettings(data)).catch(() => {});
-  }, [user]);
+  }, []);
+  useEffect(() => {
+    if (user) fetchSettings();
+  }, [user, fetchSettings]);
 
   const updateSettings = useCallback(async (patch) => {
     const res = await apiFetch('/api/settings', {
@@ -83,11 +85,12 @@ export function AppProvider({ children }) {
       clearTimeout(refetchTimer.current);
       refetchTimer.current = setTimeout(() => fetchCustomers({ silent: true }), 400);
     });
+    socket.on('settings:changed', () => fetchSettings());
     return () => {
       clearTimeout(refetchTimer.current);
       socket.disconnect();
     };
-  }, [user, fetchCustomers]);
+  }, [user, fetchCustomers, fetchSettings]);
 
   /* "shell" records (see backend/src/lib/validateIncomplete.js) have no
      PAN and/or no confirmed unit financials. They used to be held out

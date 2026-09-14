@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Pencil } from 'lucide-react';
-import { Card, Chip, Banner, TableWrap, BtnPrimary, rowActionCls } from '../../components/Ui.jsx';
+import { Pencil, Trash2, Plus } from 'lucide-react';
+import Swal from 'sweetalert2';
+import { Card, Chip, Banner, TableWrap, BtnPrimary, btnGhost, rowActionCls } from '../../components/Ui.jsx';
 import ValuationModal from '../../components/ValuationModal.jsx';
 import ExitModal from '../../components/ExitModal.jsx';
 import MilestonesModal from '../../components/MilestonesModal.jsx';
 import UnitFinancialsModal from '../../components/UnitFinancialsModal.jsx';
 import CompleteRecordModal from '../../components/CompleteRecordModal.jsx';
+import AddUnitModal from '../../components/AddUnitModal.jsx';
+import { useApp } from '../../context/AppContext.jsx';
 import { fmtD, inr, inrF, psf } from '../../utils/core.js';
 import { roll } from '../../utils/derived.js';
+import { toast, CONFIRM_COLOR } from '../../utils/toast.js';
 
 /* Hoisted once and reused across both tables — the app-wide table
    convention (see OwnerBase/CommandCentre/SendLog/ExitRegister), which
@@ -19,12 +23,44 @@ const tdR = `${td} text-right tabular-nums`;
 const sub2 = 'text-[10.5px] text-gray-400 dark:text-gray-500';
 
 export default function MPortfolio({ c }) {
+  const { mutateCustomer } = useApp();
   const r = roll(c);
   const [valIdx, setValIdx] = useState(null);
   const [exitIdx, setExitIdx] = useState(null);
   const [milestoneIdx, setMilestoneIdx] = useState(null);
   const [finIdx, setFinIdx] = useState(null);
   const [completing, setCompleting] = useState(false);
+  const [deletingIdx, setDeletingIdx] = useState(null);
+  const [addingUnit, setAddingUnit] = useState(false);
+
+  const deleteUnit = async (idx, u) => {
+    if (r.all.length <= 1) {
+      Swal.fire({
+        icon: 'info',
+        title: "Can't delete the only unit",
+        text: `${c.name} would be left with zero units, which the rest of the app assumes never happens. Delete the owner instead if none of their units should remain.`,
+      });
+      return;
+    }
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'Delete this unit?',
+      html: `<b>${u.unit}</b> (${u.project}) will be removed from ${c.name}'s record — its ledger, valuation and milestone history go with it.<br/>This cannot be undone.`,
+      showCancelButton: true,
+      confirmButtonText: 'Delete unit',
+      confirmButtonColor: CONFIRM_COLOR.destructive,
+    });
+    if (!result.isConfirmed) return;
+    setDeletingIdx(idx);
+    try {
+      await mutateCustomer(`/api/customers/${c.id}/units/${idx}`, { unit: u.unit, project: u.project }, 'DELETE');
+      toast.success('Unit deleted', `${u.unit} (${u.project}) removed.`);
+    } catch (err) {
+      toast.error('Could not delete', err.message);
+    } finally {
+      setDeletingIdx(null);
+    }
+  };
 
   return (
     <>
@@ -38,6 +74,11 @@ export default function MPortfolio({ c }) {
       )}
 
       <Card title="Units" hint="rollup across all three entities" pad={false}>
+        <div className="flex justify-end px-4 pt-3">
+          <button className={`${btnGhost} inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5`} onClick={() => setAddingUnit(true)}>
+            <Plus className="w-3.5 h-3.5" />Add unit
+          </button>
+        </div>
         <TableWrap>
           <table className="w-full border-collapse">
             <thead>
@@ -55,13 +96,23 @@ export default function MPortfolio({ c }) {
             </thead>
             <tbody>
               {r.all.map((u, idx) => (
-                <tr key={u.unit} className={u.exited ? 'bg-red-50/40 dark:bg-red-900/10' : undefined}>
+                <tr key={idx} className={u.exited ? 'bg-red-50/40 dark:bg-red-900/10' : undefined}>
                   <td className={td}>
                     <b>{u.unit}</b>
                     <div className={sub2}>{u.project}<br />{u.entity}</div>
-                    <button className={`${rowActionCls('primary')} mt-1.5`} onClick={() => setFinIdx(idx)}>
-                      <Pencil className="w-3 h-3" />Edit unit
-                    </button>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <button className={rowActionCls('primary')} onClick={() => setFinIdx(idx)}>
+                        <Pencil className="w-3 h-3" />Edit unit
+                      </button>
+                      <button
+                        className={rowActionCls('red')}
+                        disabled={deletingIdx === idx}
+                        onClick={() => deleteUnit(idx, u)}
+                        title={r.all.length > 1 ? 'Delete this unit' : 'An owner must keep at least one unit — this will be refused'}
+                      >
+                        <Trash2 className="w-3 h-3" />Delete
+                      </button>
+                    </div>
                   </td>
                   <td className={`${td} ${sub2}`}>
                     Booked {fmtD(u.bookDate)}<br />
@@ -126,7 +177,7 @@ export default function MPortfolio({ c }) {
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className={th}>Project</th>
+                <th className={th}>Unit</th>
                 <th className={thR}>Our ask</th>
                 <th className={thR}>Recent resale</th>
                 <th className={thR}>Circle</th>
@@ -138,8 +189,11 @@ export default function MPortfolio({ c }) {
             </thead>
             <tbody>
               {r.all.map((u, idx) => (
-                <tr key={u.unit}>
-                  <td className={td}>{u.project}</td>
+                <tr key={idx}>
+                  <td className={td}>
+                    <b>{u.unit}</b>
+                    <div className={sub2}>{u.project}</div>
+                  </td>
                   <td className={`${tdR} ${sub2}`}>{psf(u.val.ask)}</td>
                   <td className={tdR}>{psf(u.val.resale)}</td>
                   <td className={tdR}>{psf(u.val.circle)}</td>
@@ -147,7 +201,17 @@ export default function MPortfolio({ c }) {
                   <td className={td}>{fmtD(u.val.notedOn)} {u.valStale && <Chip cls="r">stale</Chip>}</td>
                   <td className={`${td} ${sub2}`}>{u.val.basis}</td>
                   <td className={`${td} text-right`}>
-                    <button className={rowActionCls('primary')} onClick={() => setValIdx(idx)}>Edit</button>
+                    <div className="inline-flex items-center gap-1.5">
+                      <button className={rowActionCls('primary')} onClick={() => setValIdx(idx)}>Edit</button>
+                      <button
+                        className={rowActionCls('red')}
+                        disabled={deletingIdx === idx}
+                        onClick={() => deleteUnit(idx, u)}
+                        title={r.all.length > 1 ? 'Delete this unit' : 'An owner must keep at least one unit — this will be refused'}
+                      >
+                        <Trash2 className="w-3 h-3" />Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -174,6 +238,7 @@ export default function MPortfolio({ c }) {
         <UnitFinancialsModal customer={c} unit={r.all[finIdx]} unitIndex={finIdx} onClose={() => setFinIdx(null)} />
       )}
       {completing && <CompleteRecordModal customer={c} onClose={() => setCompleting(false)} />}
+      {addingUnit && <AddUnitModal customer={c} onClose={() => setAddingUnit(false)} />}
     </>
   );
 }
