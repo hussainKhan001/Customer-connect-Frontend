@@ -65,37 +65,70 @@ export default function OwnerBase() {
   const [editingUnit, setEditingUnit] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
+  /* the default sort is by score, and saving an edit (financials,
+     profile, anything that feeds capacity/trust/timing/engagement)
+     recomputes every owner's score on the next `base` update — sorted
+     live, the row you were just looking at can jump straight to rank
+     #1 the moment you save, which reads as the table randomly
+     relocating the owner you were working on rather than reflecting a
+     score change you asked to see. `orderRef` freezes each row's
+     POSITION for as long as the filters/sort themselves haven't
+     changed: a data update refreshes what every row shows without
+     reshuffling where it sits. A genuinely new match (a fresh booking,
+     or an edit that now clears an active filter) is appended after
+     whatever's already on screen instead of being sorted into the
+     middle of it. Picking a column, or changing a filter, still
+     re-sorts everything from scratch, exactly as before. */
+  const orderRef = useRef([]);
+  const orderKeyRef = useRef(null);
+
+  const compareRows = (a, b) => {
+    /* one visible column, two fields: sorting "Project / unit"
+       groups by project first, then orders units within it.
+       Units that were never captured sort last in both
+       directions — an absent unit number isn't a low one, and
+       letting blanks head an ascending sort buries the ordering
+       the sort was asked for. */
+    if (sort.k === '_project') {
+      const byProject = natCmp(a._project, b._project);
+      if (byProject) return byProject * sort.dir;
+      const aBlank = !String(a._unit ?? '').trim();
+      const bBlank = !String(b._unit ?? '').trim();
+      if (aBlank !== bBlank) return aBlank ? 1 : -1;
+      return natCmp(a._unit, b._unit) * sort.dir;
+    }
+    let x = a[sort.k], y = b[sort.k];
+    if (x instanceof Date) { x = +x; y = +y; }
+    if (typeof x === 'string') return natCmp(x, y) * sort.dir;
+    return (x - y) * sort.dir;
+  };
+
+  const orderKey = JSON.stringify([filters.seg, filters.proj, filters.unit, filters.ent, filters.status, filters.q, sort.k, sort.dir]);
+
   const rows = useMemo(() => {
     const f = filters;
-    return base
-      .filter((c) =>
-        (!f.seg || c._seg === f.seg) &&
-        (!f.proj || c.units.some((u) => u.project === f.proj)) &&
-        (!f.unit || c.units.some((u) => unitKey(u) === f.unit)) &&
-        (!f.ent || c.units.some((u) => u.entity === f.ent)) &&
-        (!f.status || c.status === f.status) &&
-        (!f.q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(f.q.toLowerCase())))
-      .sort((a, b) => {
-        /* one visible column, two fields: sorting "Project / unit"
-           groups by project first, then orders units within it.
-           Units that were never captured sort last in both
-           directions — an absent unit number isn't a low one, and
-           letting blanks head an ascending sort buries the ordering
-           the sort was asked for. */
-        if (sort.k === '_project') {
-          const byProject = natCmp(a._project, b._project);
-          if (byProject) return byProject * sort.dir;
-          const aBlank = !String(a._unit ?? '').trim();
-          const bBlank = !String(b._unit ?? '').trim();
-          if (aBlank !== bBlank) return aBlank ? 1 : -1;
-          return natCmp(a._unit, b._unit) * sort.dir;
-        }
-        let x = a[sort.k], y = b[sort.k];
-        if (x instanceof Date) { x = +x; y = +y; }
-        if (typeof x === 'string') return natCmp(x, y) * sort.dir;
-        return (x - y) * sort.dir;
-      });
-  }, [base, filters.seg, filters.proj, filters.unit, filters.ent, filters.status, filters.q, sort.k, sort.dir]);
+    const matched = base.filter((c) =>
+      (!f.seg || c._seg === f.seg) &&
+      (!f.proj || c.units.some((u) => u.project === f.proj)) &&
+      (!f.unit || c.units.some((u) => unitKey(u) === f.unit)) &&
+      (!f.ent || c.units.some((u) => u.entity === f.ent)) &&
+      (!f.status || c.status === f.status) &&
+      (!f.q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(f.q.toLowerCase())));
+
+    if (orderKeyRef.current !== orderKey) {
+      const sorted = [...matched].sort(compareRows);
+      orderRef.current = sorted.map((c) => c.id);
+      orderKeyRef.current = orderKey;
+      return sorted;
+    }
+
+    const byId = new Map(matched.map((c) => [c.id, c]));
+    const kept = orderRef.current.filter((id) => byId.has(id));
+    const keptSet = new Set(kept);
+    const added = matched.filter((c) => !keptSet.has(c.id)).sort(compareRows);
+    orderRef.current = [...kept, ...added.map((c) => c.id)];
+    return [...kept.map((id) => byId.get(id)), ...added];
+  }, [base, orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { page, setPage, totalPages, pageItems: pagedRows, pageSize, setPageSize } = usePagination(rows, {
     pageSize: PAGE_SIZE, resetKey: filters, persistKey: 'ownerbase',
