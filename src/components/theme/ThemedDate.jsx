@@ -26,6 +26,20 @@ import { useTheme } from '../../context/ThemeContext.jsx';
    button commits both together; every date-only caller is unaffected
    since this prop defaults to false. */
 
+/* Same scroll-ancestor-aware flip check as ThemedSelect — flipping
+   only against window.innerHeight lets the popup spill past a shorter
+   Modal's own bottom edge when there's still plenty of viewport room
+   below the trigger but not much modal left. */
+function getScrollParent(el) {
+  let node = el?.parentElement;
+  while (node && node !== document.body) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === 'auto' || overflowY === 'scroll') return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -78,7 +92,11 @@ export default function ThemedDate({
     if (!open) return;
     const r = triggerRef.current.getBoundingClientRect();
     setRect(r);
-    setFlipUp(window.innerHeight - r.bottom < 400 && r.top > 400);
+    const boundary = getScrollParent(triggerRef.current)?.getBoundingClientRect()
+      || { top: 0, bottom: window.innerHeight };
+    const spaceBelow = boundary.bottom - r.bottom;
+    const spaceAbove = r.top - boundary.top;
+    setFlipUp(spaceBelow < 400 && spaceAbove > spaceBelow);
     setMode('days');
     const p = parse(value);
     setView(p || today);

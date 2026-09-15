@@ -197,8 +197,8 @@ export function enrich(base, W) {
    are the natural key — see TriggerAckSchema on the backend — so a
    recurring trigger (a birthday, say) acknowledged this year shows as
    due and unhandled again next year, when the date has moved on. */
-function isAcked(c, label, date) {
-  return (c.triggerAcks || []).some((a) => a.label === label && a.date === date);
+function findAck(c, label, date) {
+  return (c.triggerAcks || []).find((a) => a.label === label && a.date === date);
 }
 
 export function triggerList(base, incompleteBase = []) {
@@ -207,7 +207,8 @@ export function triggerList(base, incompleteBase = []) {
     if (c._blocked) return;
     const add = (d, label, kind) => {
       if (d == null || d < 0 || d > 90) return;
-      out.push({ c, days: d, label, kind, acked: d === 0 && isAcked(c, label, todayInput()) });
+      const ack = d === 0 ? findAck(c, label, todayInput()) : null;
+      out.push({ c, days: d, label, kind, acked: !!ack, remark: ack?.remark || null, ackedBy: ack?.by || null });
     };
     if (c.captured.dob) add(annivIn(c.dob), 'Birthday', 'personal');
     if (c.captured.anniv && c.spouseDob) add(annivIn(c.spouseDob), 'Wedding anniversary', 'personal');
@@ -225,7 +226,8 @@ export function triggerList(base, incompleteBase = []) {
   incompleteBase.forEach((c) => {
     const add = (d, label, kind) => {
       if (d == null || d < 0 || d > 90) return;
-      out.push({ c, days: d, label, kind, acked: d === 0 && isAcked(c, label, todayInput()) });
+      const ack = d === 0 ? findAck(c, label, todayInput()) : null;
+      out.push({ c, days: d, label, kind, acked: !!ack, remark: ack?.remark || null, ackedBy: ack?.by || null });
     };
     if (c.captured.dob) add(annivIn(c.dob), 'Birthday', 'personal');
     if (c.captured.anniv && c.spouseDob) add(annivIn(c.spouseDob), 'Wedding anniversary', 'personal');

@@ -5,6 +5,7 @@
    click-to-open like every other trigger row in the app. */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Swal from 'sweetalert2';
 import { Bell, Check, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
@@ -12,7 +13,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { Chip, Avatar } from './Ui.jsx';
 import { triggerList, dueTodayUnacked, followUpsDue } from '../utils/derived.js';
 import { fmtDM, addD, TODAY, todayInput } from '../utils/core.js';
-import { toast } from '../utils/toast.js';
+import { toast, CONFIRM_COLOR } from '../utils/toast.js';
 
 const kindTone = (k) => (k === 'money' ? 'g' : k === 'personal' ? 'm' : 'w');
 
@@ -39,9 +40,20 @@ export default function NotificationBell() {
   const dueToday = dueTodayUnacked(soon).length;
   const dueFollowUps = followUpsDue(base);
 
-  const ack = (t) => (e) => {
+  const ack = (t) => async (e) => {
     e.stopPropagation();
-    mutateCustomer(`/api/customers/${t.c.id}/trigger-acks`, { label: t.label, date: todayInput() }, 'POST').catch(() => {});
+    const { value: remark, isConfirmed } = await Swal.fire({
+      icon: 'question',
+      title: 'Mark as handled',
+      html: `<b>${t.c.name}</b> — ${t.label}`,
+      input: 'textarea',
+      inputPlaceholder: 'Add a remark (e.g. wished on call, will follow up next week)…',
+      showCancelButton: true,
+      confirmButtonText: 'Mark done',
+      confirmButtonColor: CONFIRM_COLOR.approve,
+    });
+    if (!isConfirmed) return;
+    mutateCustomer(`/api/customers/${t.c.id}/trigger-acks`, { label: t.label, date: todayInput(), remark }, 'POST').catch(() => {});
   };
 
   const markFollowUpDone = (f) => (e) => {
@@ -158,9 +170,10 @@ export default function NotificationBell() {
             <ul className="list-none m-0 p-0">
               {soon.slice(0, 10).map((t, i) => {
                 const isDueToday = t.days === 0 && !t.acked;
+                const handledToday = t.days === 0 && t.acked;
                 return (
                 <li key={i}
-                    className={`flex items-start gap-2.5 px-4 py-2.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer ${isDueToday ? 'bg-red-50/60 dark:bg-red-500/10' : ''}`}
+                    className={`flex items-start gap-2.5 px-4 py-2.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer ${isDueToday ? 'bg-red-50/60 dark:bg-red-500/10' : handledToday ? 'bg-green-50/50 dark:bg-green-500/10' : ''}`}
                     onClick={() => { setOpen(false); openCustomer(t.c.id); }}
                 >
                   <span className="relative flex-shrink-0">
@@ -171,11 +184,18 @@ export default function NotificationBell() {
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-[12.5px] text-gray-900 dark:text-white truncate">{t.c.name}</span>
                       <Chip cls={kindTone(t.kind)}>{t.kind}</Chip>
+                      {handledToday && <Chip cls="g">done</Chip>}
                     </div>
                     <div className="text-[11px] text-gray-600 dark:text-gray-300">{t.label}</div>
                     <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                       {t.days === 0 ? 'Today' : `in ${t.days}d`} · {fmtDM(addD(TODAY, t.days))}
                     </div>
+                    {handledToday && (
+                      <div className="text-[10.5px] text-green-700 dark:text-green-400 mt-0.5">
+                        <Check className="w-3 h-3 inline -mt-0.5 mr-1" />
+                        Done{t.remark ? ` — ${t.remark}` : ''}
+                      </div>
+                    )}
                   </div>
                   {isDueToday && (
                     <button

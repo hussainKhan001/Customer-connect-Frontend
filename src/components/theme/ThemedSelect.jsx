@@ -1,11 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext.jsx';
 
 /* Custom dropdown — never a native <select>, per the Nexora style guide.
    Trigger + portal-rendered popup positioned via getBoundingClientRect()
    so it's never clipped by a scrolling ancestor. */
+
+/* The nearest ancestor that actually scrolls — a Modal's own
+   max-h-[65vh] overflow-y-auto body, most often. Flip-up space is
+   measured against ITS bottom edge, not the full window: the browser
+   viewport routinely has plenty of room below a trigger sitting inside
+   a shorter modal card, so a check against window.innerHeight alone
+   never flips and the popup spills out past the modal's own rounded
+   corners into the dimmed backdrop instead of just opening upward. */
+function getScrollParent(el) {
+  let node = el?.parentElement;
+  while (node && node !== document.body) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === 'auto' || overflowY === 'scroll') return node;
+    node = node.parentElement;
+  }
+  return null;
+}
 export default function ThemedSelect({
   value,
   onChange,
@@ -18,6 +35,7 @@ export default function ThemedSelect({
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState(null);
   const [flipUp, setFlipUp] = useState(false);
+  const [maxPopupHeight, setMaxPopupHeight] = useState(240);
   const [q, setQ] = useState('');
   const triggerRef = useRef(null);
   const popupRef = useRef(null);
@@ -32,7 +50,13 @@ export default function ThemedSelect({
     if (!open) return;
     const r = triggerRef.current.getBoundingClientRect();
     setRect(r);
-    setFlipUp(window.innerHeight - r.bottom < 250 && r.top > 250);
+    const boundary = getScrollParent(triggerRef.current)?.getBoundingClientRect()
+      || { top: 0, bottom: window.innerHeight };
+    const spaceBelow = boundary.bottom - r.bottom;
+    const spaceAbove = r.top - boundary.top;
+    const flip = spaceBelow < 250 && spaceAbove > spaceBelow;
+    setFlipUp(flip);
+    setMaxPopupHeight(Math.max(120, Math.min(240, (flip ? spaceAbove : spaceBelow) - 12)));
     setQ('');
   }, [open]);
 
@@ -77,11 +101,14 @@ export default function ThemedSelect({
           style={{
             left: rect.left,
             width: rect.width,
+            maxHeight: maxPopupHeight,
+            display: 'flex',
+            flexDirection: 'column',
             ...(flipUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
           }}
         >
           {showSearch && (
-            <div className="relative p-2 border-b border-gray-100 dark:border-gray-700/80">
+            <div className="relative p-2 border-b border-gray-100 dark:border-gray-700/80 flex-shrink-0">
               <Search className="w-3.5 h-3.5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 autoFocus
@@ -92,7 +119,7 @@ export default function ThemedSelect({
               />
             </div>
           )}
-          <div className="max-h-60 overflow-y-auto overflow-x-hidden custom-scrollbar py-1">
+          <div className="overflow-y-auto overflow-x-hidden custom-scrollbar py-1 min-h-0">
             {filtered.length === 0 && (
               <div className="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">No matches</div>
             )}
@@ -101,10 +128,13 @@ export default function ThemedSelect({
                 type="button"
                 key={o.value}
                 onClick={() => { onChange(o.value); setOpen(false); }}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 "
+                className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left ${
+                  o.value === value
+                    ? 'bg-primary-50 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 font-semibold'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60'
+                }`}
               >
                 <span className="truncate">{o.label}</span>
-                {o.value === value && <Check className="w-3.5 h-3.5 flex-shrink-0 text-primary-500" />}
               </button>
             ))}
           </div>

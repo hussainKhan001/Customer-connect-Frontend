@@ -25,7 +25,7 @@ export default function ExitModal({ customer, unitIndex, unit, onClose }) {
       await mutateCustomer(`/api/customers/${customer.id}/units/${unitIndex}/exit`, {
         ...draft, unit: unit.unit, project: unit.project,
       });
-      toast.success('Unit marked exited', `${unit.unit} now appears in the Exit Register.`);
+      toast.success('Unit marked exited', `${unit.unit || 'This unit'} now appears in the Exit Register.`);
       onClose();
     } catch (err) {
       const fieldErrors = err.errors || {};
@@ -43,7 +43,7 @@ export default function ExitModal({ customer, unitIndex, unit, onClose }) {
   return (
     <Modal
       title="Mark unit exited"
-      subtitle={`${unit.unit} · ${unit.project}`}
+      subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}
       footer={
         <>

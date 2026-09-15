@@ -28,7 +28,7 @@ export default function ValuationModal({ customer, unitIndex, unit, onClose }) {
       await mutateCustomer(`/api/customers/${customer.id}/units/${unitIndex}/valuation`, {
         ...draft, unit: unit.unit, project: unit.project,
       });
-      toast.success('Valuation note updated', `${unit.unit} — signed for ${draft.notedOn}.`);
+      toast.success('Valuation note updated', `${unit.unit || 'This unit'} — signed for ${draft.notedOn}.`);
       onClose();
     } catch (err) {
       const fieldErrors = err.errors || {};
@@ -46,7 +46,7 @@ export default function ValuationModal({ customer, unitIndex, unit, onClose }) {
   return (
     <Modal
       title="Edit valuation note"
-      subtitle={`${unit.unit} · ${unit.project}`}
+      subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}
       footer={
         <>

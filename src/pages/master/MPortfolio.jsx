@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { Card, Chip, Banner, TableWrap, BtnPrimary, btnGhost, rowActionCls } from '../../components/Ui.jsx';
+import { Card, Chip, TableWrap, btnGhost, rowActionCls } from '../../components/Ui.jsx';
 import ValuationModal from '../../components/ValuationModal.jsx';
 import ExitModal from '../../components/ExitModal.jsx';
 import MilestonesModal from '../../components/MilestonesModal.jsx';
 import UnitFinancialsModal from '../../components/UnitFinancialsModal.jsx';
-import CompleteRecordModal from '../../components/CompleteRecordModal.jsx';
 import AddUnitModal from '../../components/AddUnitModal.jsx';
 import { useApp } from '../../context/AppContext.jsx';
 import { fmtD, inr, inrF, psf } from '../../utils/core.js';
@@ -29,7 +28,6 @@ export default function MPortfolio({ c }) {
   const [exitIdx, setExitIdx] = useState(null);
   const [milestoneIdx, setMilestoneIdx] = useState(null);
   const [finIdx, setFinIdx] = useState(null);
-  const [completing, setCompleting] = useState(false);
   const [deletingIdx, setDeletingIdx] = useState(null);
   const [addingUnit, setAddingUnit] = useState(false);
 
@@ -64,15 +62,6 @@ export default function MPortfolio({ c }) {
 
   return (
     <>
-      {c.incomplete && (
-        <Banner kind="warn">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <span>PAN and/or unit financials (area, rate, consideration, booking date) were never captured for this owner — that's why they show as ₹0 below. Fill them in to make this a fully scored record.</span>
-            <BtnPrimary className="shrink-0" onClick={() => setCompleting(true)}>Complete record</BtnPrimary>
-          </div>
-        </Banner>
-      )}
-
       <Card title="Units" hint="rollup across all three entities" pad={false}>
         <div className="flex justify-end px-4 pt-3">
           <button className={`${btnGhost} inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5`} onClick={() => setAddingUnit(true)}>
@@ -237,7 +226,6 @@ export default function MPortfolio({ c }) {
       {finIdx !== null && (
         <UnitFinancialsModal customer={c} unit={r.all[finIdx]} unitIndex={finIdx} onClose={() => setFinIdx(null)} />
       )}
-      {completing && <CompleteRecordModal customer={c} onClose={() => setCompleting(false)} />}
       {addingUnit && <AddUnitModal customer={c} onClose={() => setAddingUnit(false)} />}
     </>
   );

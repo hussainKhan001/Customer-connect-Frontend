@@ -29,7 +29,7 @@ export default function MilestonesModal({ customer, unitIndex, unit, onClose }) 
       await mutateCustomer(`/api/customers/${customer.id}/units/${unitIndex}/milestones`, {
         ...draft, unit: unit.unit, project: unit.project,
       });
-      toast.success('Milestones updated', `${unit.unit} — dates saved.`);
+      toast.success('Milestones updated', `${unit.unit || 'This unit'} — dates saved.`);
       onClose();
     } catch (err) {
       const fieldErrors = err.errors || {};
@@ -47,7 +47,7 @@ export default function MilestonesModal({ customer, unitIndex, unit, onClose }) 
   return (
     <Modal
       title="Edit milestones"
-      subtitle={`${unit.unit} · ${unit.project}`}
+      subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}
       footer={
         <>

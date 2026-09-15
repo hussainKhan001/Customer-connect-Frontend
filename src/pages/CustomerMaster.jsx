@@ -20,19 +20,20 @@ import MInvestor from './master/MInvestor.jsx';
 import MLedger from './master/MLedger.jsx';
 import MRelationship from './master/MRelationship.jsx';
 import MTriggers from './master/MTriggers.jsx';
+import MFollowUps from './master/MFollowUps.jsx';
 import MDocuments from './master/MDocuments.jsx';
 import MActivity from './master/MActivity.jsx';
 import MGovernance from './master/MGovernance.jsx';
 
 const CTABS = [
   ['overview', 'Overview'], ['portfolio', 'Portfolio'], ['investor', 'Investor'], ['ledger', 'Ledger'],
-  ['relationship', 'Relationship'], ['triggers', 'Trigger dates'], ['documents', 'Documents'],
-  ['activity', 'Activity log'], ['governance', 'Consent & gate'],
+  ['relationship', 'Relationship'], ['triggers', 'Trigger dates'], ['followups', 'Follow-ups'],
+  ['documents', 'Documents'], ['activity', 'Activity log'], ['governance', 'Consent & gate'],
 ];
 
 const TAB_VIEWS = {
   overview: MOverview, portfolio: MPortfolio, investor: MInvestor, ledger: MLedger,
-  relationship: MRelationship, triggers: MTriggers, documents: MDocuments,
+  relationship: MRelationship, triggers: MTriggers, followups: MFollowUps, documents: MDocuments,
   activity: MActivity, governance: MGovernance,
 };
 

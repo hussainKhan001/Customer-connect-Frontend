@@ -1,3 +1,4 @@
+import Swal from 'sweetalert2';
 import { Check } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
@@ -5,6 +6,7 @@ import { useTheme } from '../context/ThemeContext.jsx';
 import { Card, Chip, Banner, Timeline } from '../components/Ui.jsx';
 import { inr, nextFest, addD, fmtDM, TODAY, initials, todayInput } from '../utils/core.js';
 import { triggerList } from '../utils/derived.js';
+import { CONFIRM_COLOR } from '../utils/toast.js';
 
 const kindTone = (k) => (k === 'money' ? 'g' : k === 'personal' ? 'm' : 'w');
 
@@ -15,9 +17,10 @@ function Box({ title, list, openCustomer, ack }) {
       <Timeline>
         {list.length ? list.slice(0, 14).map((x, i) => {
           const isDueToday = x.days === 0 && !x.acked;
+          const handledToday = x.days === 0 && x.acked;
           return (
           <li key={i}
-              className={`flex items-start gap-3 px-3.5 py-3 border-b border-gray-100 dark:border-gray-700/60 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer ${isDueToday ? 'bg-red-50/60 dark:bg-red-500/10' : ''}`}
+              className={`flex items-start gap-3 px-3.5 py-3 border-b border-gray-100 dark:border-gray-700/60 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer ${isDueToday ? 'bg-red-50/60 dark:bg-red-500/10' : handledToday ? 'bg-green-50/50 dark:bg-green-500/10' : ''}`}
               onClick={() => openCustomer(x.c.id)}>
             <div className="w-11 flex-shrink-0 text-center pt-0.5">
               <div className="text-[13px] font-bold text-gray-800 dark:text-gray-100 tabular-nums leading-tight">
@@ -42,6 +45,7 @@ function Box({ title, list, openCustomer, ack }) {
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-semibold text-[13px] text-gray-900 dark:text-white truncate">{x.c.name}</span>
                 <Chip cls={kindTone(x.kind)}>{x.kind}</Chip>
+                {handledToday && <Chip cls="g">done</Chip>}
               </div>
               <div className="text-[12px] text-gray-600 dark:text-gray-300 mt-0.5">{x.label}</div>
               <div className="text-[10.5px] text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1.5 flex-wrap">
@@ -51,6 +55,12 @@ function Box({ title, list, openCustomer, ack }) {
                   <>{x.c.units?.[0]?.project} <Chip cls="m">incomplete record</Chip></>
                 )}
               </div>
+              {handledToday && (
+                <div className="text-[11px] text-green-700 dark:text-green-400 mt-1">
+                  <Check className="w-3 h-3 inline -mt-0.5 mr-1" />
+                  Done{x.ackedBy ? ` by ${x.ackedBy}` : ''}{x.remark ? ` — ${x.remark}` : ''}
+                </div>
+              )}
             </div>
             {isDueToday && (
               <button
@@ -77,8 +87,19 @@ export default function TriggerCalendar() {
   const { base, incompleteRecords, mutateCustomer } = useApp();
   const { openCustomer } = useAppNavigation();
   const t = triggerList(base, incompleteRecords);
-  const ack = (x) => {
-    mutateCustomer(`/api/customers/${x.c.id}/trigger-acks`, { label: x.label, date: todayInput() }, 'POST').catch(() => {});
+  const ack = async (x) => {
+    const { value: remark, isConfirmed } = await Swal.fire({
+      icon: 'question',
+      title: 'Mark as handled',
+      html: `<b>${x.c.name}</b> — ${x.label}`,
+      input: 'textarea',
+      inputPlaceholder: 'Add a remark (e.g. wished on call, will follow up next week)…',
+      showCancelButton: true,
+      confirmButtonText: 'Mark done',
+      confirmButtonColor: CONFIRM_COLOR.approve,
+    });
+    if (!isConfirmed) return;
+    mutateCustomer(`/api/customers/${x.c.id}/trigger-acks`, { label: x.label, date: todayInput(), remark }, 'POST').catch(() => {});
   };
   const nf = nextFest();
   const bk = (lo, hi) => t.filter((x) => x.days >= lo && x.days <= hi);
