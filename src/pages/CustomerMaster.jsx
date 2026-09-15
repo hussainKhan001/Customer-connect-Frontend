@@ -37,6 +37,24 @@ const TAB_VIEWS = {
   activity: MActivity, governance: MGovernance,
 };
 
+/* short chip labels for confidence()'s full sentence-length checks
+   (see derived.js) — the full wording still shows on hover via the
+   chip's title attribute, this is only what's printed on the chip
+   itself. Falls back to the full label if derived.js's wording ever
+   drifts from this map, rather than silently dropping the check. */
+const CONF_SHORT_LABEL = {
+  'Identity verified — PAN and KYC': 'Identity',
+  'Mobile on record': 'Mobile',
+  'Address updated since booking': 'Address',
+  'Owner status confirmed active': 'Status',
+  'Paid-to-date within consideration': 'Payments',
+  'Registry on record for every possessed unit': 'Registry',
+  'Valuation note dated within 90 days': 'Valuation',
+  'DPDP consent recorded': 'Consent',
+  'Date of birth captured': 'DOB',
+  'Anniversary captured': 'Anniversary',
+};
+
 export default function CustomerMaster() {
   const { base, weights } = useApp();
   const { openStatement } = useAppNavigation();
@@ -144,11 +162,11 @@ export default function CustomerMaster() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 items-start">
-        <div className="w-full lg:w-[300px] flex-shrink-0">
+      <div className="flex flex-col lg:flex-row gap-5 items-start">
+        <div className="w-full lg:w-[320px] xl:w-[400px] 2xl:w-[460px] flex-shrink-0 flex flex-col gap-4">
           <Rail c={c} cf={cf} weights={weights} onStatement={() => openStatement(c.id)} onEditProfile={() => setEditOpen(true)} onLogCall={() => setCallOpen(true)} />
         </div>
-        <div className="flex-1 min-w-0"><Tab c={c} /></div>
+        <div className="flex-1 min-w-0 flex flex-col"><Tab c={c} /></div>
       </div>
 
       {editOpen && <EditProfileModal customer={c} onClose={() => setEditOpen(false)} />}
@@ -212,34 +230,50 @@ function Rail({ c, cf, weights, onStatement, onEditProfile, onLogCall }) {
         </KV>
       </Card>
 
-      <Card title="Data confidence" hint={<span className="tabular-nums">{cf.pass}/{cf.total}</span>}>
-        <Meter label="Ready to show the customer" value={`${cf.pct}%`} cls={confMeterCls(cf.pct)} width={cf.pct} />
-        <div className="mt-2.5 space-y-1">
-          {cf.checks.map(([l, ok]) => (
-            <div key={l} className="flex gap-2 py-0.5 text-[11.5px]">
-              <Dot tone={ok ? 'g' : 'r'} />
-              <span className={ok ? 'text-gray-600 dark:text-gray-300' : 'text-red-600 dark:text-red-400'}>{l}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card
-        title="Propensity"
-        hint={`${weights.capacity}/${weights.trust}/${weights.timing}/${weights.engagement}`}
-      >
-        {g.open ? (
-          [['capacity', 'Capacity'], ['trust', 'Trust'], ['timing', 'Timing'], ['engagement', 'Engagement']]
-            .map(([k, l]) => (
-              <Meter key={k} label={l} value={Math.round(s[k])} cls={s[k] >= 65 ? 'o' : ''} width={s[k]} />
-            ))
-        ) : (
-          <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            Not scored. The gate is closed, so segment is set by rule. The score is meaningless until the
-            block clears.
+      <div className="grid grid-cols-2 gap-4 items-start">
+        <Card title="Data confidence" hint={<span className="tabular-nums">{cf.pass}/{cf.total}</span>}>
+          <Meter label="Ready to show the customer" value={`${cf.pct}%`} cls={confMeterCls(cf.pct)} width={cf.pct} />
+          {/* a chip cloud, not a 10-row list — every item's full
+             wording still lives in its title tooltip, but stacking ten
+             sentence-length rows in a column half this width means most
+             wrap to 2-3 lines each, so the card ends up far taller than
+             its Propensity neighbour and CSS grid's default row-stretch
+             turns that gap into dead space inside the shorter card. */}
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {cf.checks.map(([l, ok]) => (
+              <span
+                key={l}
+                title={l}
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] font-medium leading-none ${
+                  ok
+                    ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+                    : 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+                }`}
+              >
+                <Dot tone={ok ? 'g' : 'r'} />
+                {CONF_SHORT_LABEL[l] || l}
+              </span>
+            ))}
           </div>
-        )}
-      </Card>
+        </Card>
+
+        <Card
+          title="Propensity"
+          hint={`${weights.capacity}/${weights.trust}/${weights.timing}/${weights.engagement}`}
+        >
+          {g.open ? (
+            [['capacity', 'Capacity'], ['trust', 'Trust'], ['timing', 'Timing'], ['engagement', 'Engagement']]
+              .map(([k, l]) => (
+                <Meter key={k} label={l} value={Math.round(s[k])} cls={s[k] >= 65 ? 'o' : ''} width={s[k]} />
+              ))
+          ) : (
+            <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Not scored. The gate is closed, so segment is set by rule. The score is meaningless until the
+              block clears.
+            </div>
+          )}
+        </Card>
+      </div>
 
       <Card title="Actions">
         <BtnPrimary className="w-full mb-1.5" disabled={!g.open} onClick={onStatement}>

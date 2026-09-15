@@ -14,7 +14,7 @@ import ThemedCheckbox from './theme/ThemedCheckbox.jsx';
 import { toDateInput, displayName } from '../utils/core.js';
 import { OCC, COMM } from '../constants/seedData.js';
 import { STATUSLBL } from '../constants/segments.js';
-import { toast, CONFIRM_COLOR } from '../utils/toast.js';
+import { toast, CONFIRM_COLOR, mutationErrorToast } from '../utils/toast.js';
 
 const STATUS_OPTIONS = Object.entries(STATUSLBL).map(([value, label]) => ({ value, label }));
 
@@ -111,13 +111,7 @@ export default function EditProfileModal({ customer, onClose }) {
       toast.success('Profile updated', `${customer.name}'s details are saved.`);
       onClose();
     } catch (err) {
-      const fieldErrors = err.errors || {};
-      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-      setErrors(fieldErrors);
-      toast.error(
-        hasFieldErrors ? 'Could not save' : 'Could not reach the server',
-        hasFieldErrors ? 'Fix the highlighted field and try again.' : 'Confirm the backend is running and reachable, then try again.'
-      );
+      mutationErrorToast(err, setErrors);
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Menu, Moon, Sun } from 'lucide-react';
 import { useApp } from './context/AppContext.jsx';
@@ -53,13 +53,19 @@ export default function App() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const mainRef = useRef(null);
 
   /* header title/desc, keyed on the first path segment */
   const pageId = location.pathname.split('/').filter(Boolean)[0] || 'command';
   const page = pageById(pageId) ?? PAGES[0];
 
-  /* scroll to top on every navigation */
-  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  /* scroll to top on every navigation — <main> below is the element
+     that actually scrolls (overflow-y-auto), not window/body, so
+     resetting window.scrollTo() here was a no-op: opening an owner
+     (or switching its tabs) kept whatever scrollTop <main> already
+     had from wherever you were before, landing you mid-page instead
+     of at the top. */
+  useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [location.pathname]);
 
   const toggleSidebar = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileOpen((o) => !o);
@@ -93,7 +99,7 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:overflow-visible">
         {/* Sticky Navbar Header */}
         <header className="print:hidden sticky top-0 z-30 flex-shrink-0 px-4 sm:px-6 py-2.5 bg-gray-50/80 dark:bg-gray-950/80 backdrop-blur-md">
-          <div className="flex items-center justify-between gap-4 max-w-[1800px] mx-auto px-5 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800/80 shadow-2xs">
+          <div className="flex items-center justify-between gap-4 w-full mx-auto px-5 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800/80 shadow-2xs">
             <div className="flex items-center gap-3.5">
               <button
                 onClick={toggleSidebar}
@@ -130,8 +136,8 @@ export default function App() {
         </header>
 
         {/* Main Content Area with Single Smooth Scrollbar */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-between print:overflow-visible">
-          <div className="p-4 sm:p-6 lg:p-8 max-w-[1800px] w-full mx-auto space-y-6">
+        <main ref={mainRef} className="flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-between print:overflow-visible">
+          <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6">
             {/* Prominent Page Header (matching reference screenshots) */}
             <div className="mb-2 space-y-0.5">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">

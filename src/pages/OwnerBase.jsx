@@ -97,7 +97,7 @@ export default function OwnerBase() {
       });
   }, [base, filters.seg, filters.proj, filters.unit, filters.ent, filters.status, filters.q, sort.k, sort.dir]);
 
-  const { page, setPage, totalPages, pageItems: pagedRows } = usePagination(rows, {
+  const { page, setPage, totalPages, pageItems: pagedRows, pageSize, setPageSize } = usePagination(rows, {
     pageSize: PAGE_SIZE, resetKey: filters, persistKey: 'ownerbase',
   });
 
@@ -390,7 +390,7 @@ export default function OwnerBase() {
         />
       )}
 
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} total={rows.length} pageSize={PAGE_SIZE} />
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} total={rows.length} pageSize={pageSize} onPageSizeChange={setPageSize} />
     </>
   );
 }

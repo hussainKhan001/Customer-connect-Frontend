@@ -7,7 +7,7 @@ import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from '
 import Modal from './Modal.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
 import { STATUSLBL } from '../constants/segments.js';
-import { toast } from '../utils/toast.js';
+import { toast, mutationErrorToast } from '../utils/toast.js';
 import { displayName } from '../utils/core.js';
 
 const STATUS_OPTIONS = Object.entries(STATUSLBL).map(([value, label]) => ({ value, label }));
@@ -26,13 +26,7 @@ export default function StatusModal({ customer, onClose }) {
       toast.success('Status updated', `${customer.name} is now ${STATUSLBL[status]}.`);
       onClose();
     } catch (err) {
-      const fieldErrors = err.errors || {};
-      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-      setErrors(fieldErrors);
-      toast.error(
-        hasFieldErrors ? 'Could not save' : 'Could not reach the server',
-        hasFieldErrors ? 'Fix the highlighted field and try again.' : 'Confirm the backend is running and reachable, then try again.'
-      );
+      mutationErrorToast(err, setErrors);
     } finally {
       setSaving(false);
     }

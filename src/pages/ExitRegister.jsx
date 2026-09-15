@@ -26,7 +26,7 @@ export default function ExitRegister() {
     return { c, u: uc, soldValue, askValue, gap: askValue - soldValue, comm: soldValue * COMMISSION };
   }));
   const ownersExited = new Set(rows.map((r) => r.c.id)).size;
-  const { page, setPage, totalPages, pageItems: pagedRows } = usePagination(rows, { pageSize: PAGE_SIZE });
+  const { page, setPage, totalPages, pageItems: pagedRows, pageSize, setPageSize } = usePagination(rows, { pageSize: PAGE_SIZE });
 
   const totComm = rows.reduce((s, r) => s + r.comm, 0);
   const totGap = rows.reduce((s, r) => s + r.gap, 0);
@@ -94,7 +94,7 @@ export default function ExitRegister() {
         )}
         {rows.length > 0 && (
           <div className="px-4 pb-3">
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={rows.length} pageSize={PAGE_SIZE} />
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={rows.length} pageSize={pageSize} onPageSizeChange={setPageSize} />
           </div>
         )}
       </Card>

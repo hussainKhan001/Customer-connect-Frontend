@@ -66,6 +66,20 @@
   .theme-nav-hover:hover { color: var(--theme-primary); }
   .theme-gradient { background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark)); }
 
+  /* Modern Glassmorphism & Card Design System */
+  .glass-header {
+    @apply bg-white/85 dark:bg-gray-900/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800/60 shadow-xs;
+  }
+  .glass-panel {
+    @apply bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/60 dark:border-gray-800/60 shadow-sm;
+  }
+  .glass-card {
+    @apply bg-white/95 dark:bg-gray-900/95 border border-gray-100 dark:border-gray-800/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.4)] transition-all duration-300 rounded-2xl;
+  }
+  .pro-card {
+    @apply bg-white/95 dark:bg-gray-900/95 border border-gray-200/70 dark:border-gray-800/80 rounded-2xl shadow-xs hover:shadow-md transition-all duration-200;
+  }
+
   /* Custom scrollbars applied only to designated scroll areas */
   .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.4) transparent; }
   .dark .custom-scrollbar { scrollbar-color: rgba(75, 85, 99, 0.4) transparent; }
@@ -84,17 +98,6 @@
 
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
-
-  /* Glassmorphism helpers */
-  .glass-header {
-    @apply bg-white/85 dark:bg-gray-900/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800/60 shadow-xs;
-  }
-  .glass-panel {
-    @apply bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/60 dark:border-gray-800/60 shadow-sm;
-  }
-  .glass-card {
-    @apply bg-white/95 dark:bg-gray-900/95 border border-gray-200/70 dark:border-gray-800/70 shadow-xs hover:shadow-md transition-all duration-200;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

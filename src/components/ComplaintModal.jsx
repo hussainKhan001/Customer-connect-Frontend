@@ -8,7 +8,7 @@ import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
 import { todayInput, displayName } from '../utils/core.js';
-import { toast } from '../utils/toast.js';
+import { toast, mutationErrorToast } from '../utils/toast.js';
 
 const OWNERS = ['AGM Projects', 'AGM CRM', 'Site Engineering'];
 
@@ -51,13 +51,7 @@ export default function ComplaintModal({ customer, onClose }) {
       toast.success('Complaint logged', `Now open on ${customer.name}'s record — the contact gate is closed.`);
       onClose();
     } catch (err) {
-      const fieldErrors = err.errors || {};
-      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-      setErrors(fieldErrors);
-      toast.error(
-        hasFieldErrors ? 'Could not save' : 'Could not reach the server',
-        hasFieldErrors ? 'Fix the highlighted field and try again.' : 'Confirm the backend is running and reachable, then try again.'
-      );
+      mutationErrorToast(err, setErrors);
     } finally {
       setSaving(false);
     }

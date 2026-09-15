@@ -57,7 +57,7 @@ export default function IncompleteRecords() {
     !filters.proj || (c.units[0] || {}).project === filters.proj
   ), [rowsForProjectStats, filters.proj]);
 
-  const { page, setPage, totalPages, pageItems: pagedRows } = usePagination(rows, {
+  const { page, setPage, totalPages, pageItems: pagedRows, pageSize, setPageSize } = usePagination(rows, {
     pageSize: PAGE_SIZE, resetKey: filters,
   });
 
@@ -170,7 +170,7 @@ export default function IncompleteRecords() {
         </TableWrap>
         {rows.length > 0 && (
           <div className="px-4 pb-3">
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={rows.length} pageSize={PAGE_SIZE} />
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={rows.length} pageSize={pageSize} onPageSizeChange={setPageSize} />
           </div>
         )}
       </Card>

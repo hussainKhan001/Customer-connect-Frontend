@@ -7,6 +7,8 @@ import { Children, forwardRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { initials } from '../utils/core.js';
+import ThemedSelect from './theme/ThemedSelect.jsx';
+import { PAGE_SIZE_OPTIONS } from '../hooks/usePagination.js';
 
 /* Chip tone → Tailwind status-badge pair. A–D are the owner segments,
    g/w/r/m/k are the shared semantic tones used everywhere else. */
@@ -86,11 +88,11 @@ export const KV = ({ children }) => <div>{children}</div>;
 
 export function Card({ title, hint, children, pad = true, className = '', style }) {
   return (
-    <div className={`bg-white/95 dark:bg-gray-900/95 rounded-2xl border border-gray-200/70 dark:border-gray-800/80 shadow-xs hover:shadow-md transition-shadow duration-150 mb-4 ${className}`.trim()} style={style}>
+    <div className={`glass-card mb-4 overflow-hidden ${className}`.trim()} style={style}>
       {title && (
-        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/80 flex items-center justify-between gap-2">
-          <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100 tracking-tight">{title}</h3>
-          {hint != null && <span className="text-[10px] text-gray-400 dark:text-gray-500">{hint}</span>}
+        <div className="px-4 py-3 border-b border-gray-100/80 dark:border-gray-800/80 bg-gray-50/50 dark:bg-gray-800/30 flex items-center justify-between gap-2">
+          <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100 tracking-tight uppercase">{title}</h3>
+          {hint != null && <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">{hint}</span>}
         </div>
       )}
       {pad ? <div className="p-4">{children}</div> : children}
@@ -99,24 +101,24 @@ export function Card({ title, hint, children, pad = true, className = '', style 
 }
 
 const BANNER_TONE = {
-  block: 'bg-red-50 dark:bg-red-900/10 border-red-500 text-red-800 dark:text-red-300',
-  ok: 'bg-orange-50 dark:bg-orange-900/10 border-primary-500 text-orange-900 dark:text-orange-200',
-  info: 'bg-blue-50 dark:bg-blue-900/10 border-blue-500 text-blue-900 dark:text-blue-200',
-  warn: 'bg-amber-50 dark:bg-amber-900/10 border-amber-500 text-amber-900 dark:text-amber-200',
-  good: 'bg-green-50 dark:bg-green-900/10 border-green-500 text-green-900 dark:text-green-200',
+  block: 'bg-red-50/90 dark:bg-red-950/20 border-red-500 text-red-900 dark:text-red-300 shadow-xs',
+  ok: 'bg-orange-50/90 dark:bg-orange-950/20 border-primary-500 text-orange-900 dark:text-orange-200 shadow-xs',
+  info: 'bg-blue-50/90 dark:bg-blue-950/20 border-blue-500 text-blue-900 dark:text-blue-200 shadow-xs',
+  warn: 'bg-amber-50/90 dark:bg-amber-950/20 border-amber-500 text-amber-900 dark:text-amber-200 shadow-xs',
+  good: 'bg-green-50/90 dark:bg-green-950/20 border-green-500 text-green-900 dark:text-green-200 shadow-xs',
 };
 
 export const Banner = ({ kind = 'info', children, style }) => (
-  <div className={`px-3.5 py-2.5 rounded-lg border-l-4 shadow text-[13px] leading-relaxed mb-3.5 ${BANNER_TONE[kind] || BANNER_TONE.info}`} style={style}>
+  <div className={`px-4 py-3 rounded-xl border-l-4 text-[13px] leading-relaxed mb-4 backdrop-blur-xs transition-all ${BANNER_TONE[kind] || BANNER_TONE.info}`} style={style}>
     {children}
   </div>
 );
 
 const METER_FILL = {
-  o: 'bg-primary-500',
-  g: 'bg-green-500',
-  r: 'bg-red-500',
-  '': 'bg-gray-700 dark:bg-gray-300',
+  o: 'bg-gradient-to-r from-orange-500 to-amber-500',
+  g: 'bg-gradient-to-r from-emerald-500 to-green-500',
+  r: 'bg-gradient-to-r from-red-500 to-rose-500',
+  '': 'bg-gradient-to-r from-gray-600 to-gray-400 dark:from-gray-400 dark:to-gray-200',
 };
 
 export const Meter = ({ label, value, sub, cls, width }) => (
@@ -128,46 +130,40 @@ export const Meter = ({ label, value, sub, cls, width }) => (
       </span>
       <b className="tabular-nums text-gray-900 dark:text-white">{value}</b>
     </div>
-    <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-      <div className={`h-full rounded-full ${METER_FILL[cls] || METER_FILL['']}`} style={{ width: `${width}%` }} />
+    <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden p-0.5">
+      <div className={`h-full rounded-full transition-all duration-500 ${METER_FILL[cls] || METER_FILL['']}`} style={{ width: `${width}%` }} />
     </div>
   </div>
 );
 
 const KPI_TONE = {
-  g: 'text-green-600 dark:text-green-400',
+  g: 'text-emerald-600 dark:text-emerald-400',
   o: 'text-primary-600 dark:text-primary-400',
-  r: 'text-red-600 dark:text-red-400',
+  r: 'text-rose-600 dark:text-rose-400',
 };
 
-/* icon + its circular chip background, one tone per semantic colour —
-   the chip (not a bare icon) is the reference app's stat-card signature */
+/* icon + its circular chip background, one tone per semantic colour */
 const KPI_ICON_CHIP = {
-  g: 'bg-green-500/15 text-green-600 dark:bg-green-500/15 dark:text-green-400',
-  o: 'bg-primary-500/15 text-primary-600 dark:bg-primary-500/15 dark:text-primary-400',
-  r: 'bg-red-500/15 text-red-600 dark:bg-red-500/15 dark:text-red-400',
-  b: 'bg-blue-500/15 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400',
+  g: 'bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400',
+  o: 'bg-primary-500/15 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400',
+  r: 'bg-rose-500/15 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400',
+  b: 'bg-blue-500/15 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400',
 };
 const KPI_ICON_CHIP_DEFAULT = 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500';
 
-/* Stat tile — label + big number on the left, an icon chip on the
-   bottom-right. `active` rings the tile in the theme color for a
-   currently-applied filter/selection; `highlight` is a permanent blue
-   ring for the one "headline" tile in a row (e.g. the overall total),
-   independent of any filter state. */
 export const Kpi = ({ label, value, sub, tone, icon: Icon, active, highlight }) => (
   <div
-    className={`relative bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 p-4 ${
-      active ? 'ring-2 ring-primary-400/30' : highlight ? 'ring-2 ring-blue-500/40 border border-blue-400/60 dark:border-blue-500/50' : ''
+    className={`relative bg-white/95 dark:bg-gray-900/95 rounded-2xl p-4 transition-all duration-300 border border-gray-100 dark:border-gray-800/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.4)] ${
+      active ? 'ring-2 ring-primary-500/50' : highlight ? 'ring-2 ring-blue-500/40 border-blue-400/60 dark:border-blue-500/50' : ''
     }`}
   >
     <div className="min-w-0 pr-8">
-      <div className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest truncate">{label}</div>
-      <div className={`text-2xl font-black tabular-nums tracking-tight mt-1 ${KPI_TONE[tone] || 'text-gray-900 dark:text-white'}`}>{value}</div>
+      <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider truncate">{label}</div>
+      <div className={`text-2xl font-extrabold tabular-nums tracking-tight mt-1 ${KPI_TONE[tone] || 'text-gray-900 dark:text-white'}`}>{value}</div>
     </div>
     {Icon && (
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center absolute right-4 bottom-4 ${KPI_ICON_CHIP[tone] || KPI_ICON_CHIP_DEFAULT}`}>
-        <Icon className="w-5 h-5" strokeWidth={2.5} />
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center absolute right-4 bottom-4 transition-transform duration-200 hover:scale-105 ${KPI_ICON_CHIP[tone] || KPI_ICON_CHIP_DEFAULT}`}>
+        <Icon className="w-5 h-5" strokeWidth={2.2} />
       </div>
     )}
     {sub != null && sub !== '' && <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 leading-snug">{sub}</div>}
@@ -363,14 +359,32 @@ function pageList(current, total) {
    dumping its whole filtered result into the DOM or silently
    truncating it. Hidden entirely at a single page, same as a table
    with nothing to page through. */
-export function Pagination({ page, totalPages, onChange, total }) {
-  if (totalPages <= 1) return null;
+export function Pagination({ page, totalPages, onChange, total, pageSize, onPageSizeChange }) {
+  /* still worth showing the rows-per-page picker even at a single page
+     — someone might raise it and only then need to page through — but
+     the page-number strip itself has nothing to do at totalPages <= 1 */
+  if (totalPages <= 1 && !onPageSizeChange) return null;
   const navBtnCls = 'w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent';
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60 text-xs">
-      <span className="text-gray-500 dark:text-gray-400">
-        Showing page <b className="text-gray-800 dark:text-gray-200">{page}</b> of <b className="text-gray-800 dark:text-gray-200">{totalPages}</b> ({total} total result{total === 1 ? '' : 's'})
-      </span>
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-gray-500 dark:text-gray-400">
+          Showing page <b className="text-gray-800 dark:text-gray-200">{page}</b> of <b className="text-gray-800 dark:text-gray-200">{totalPages}</b> ({total} total result{total === 1 ? '' : 's'})
+        </span>
+        {onPageSizeChange && (
+          <label className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+            Rows per page
+            <ThemedSelect
+              className="w-20"
+              pill
+              value={String(pageSize)}
+              onChange={(v) => onPageSizeChange(Number(v))}
+              options={PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: String(n) }))}
+            />
+          </label>
+        )}
+      </div>
+      {totalPages > 1 && (
       <div className="flex items-center gap-1 flex-wrap">
         <button type="button" className={navBtnCls} disabled={page <= 1} onClick={() => onChange(page - 1)} title="Previous page">
           <ChevronLeft className="w-4 h-4" />
@@ -393,6 +407,7 @@ export function Pagination({ page, totalPages, onChange, total }) {
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
+      )}
     </div>
   );
 }

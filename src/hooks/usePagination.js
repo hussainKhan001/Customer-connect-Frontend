@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+export const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
+
 function readSavedPage(key) {
   try {
     const n = Number(sessionStorage.getItem(`page:${key}`));
     return n > 0 ? n : 1;
   } catch {
     return 1;
+  }
+}
+
+function readSavedPageSize(key, fallback) {
+  try {
+    const n = Number(sessionStorage.getItem(`pageSize:${key}`));
+    return PAGE_SIZE_OPTIONS.includes(n) ? n : fallback;
+  } catch {
+    return fallback;
   }
 }
 
@@ -33,8 +44,9 @@ function readSavedPage(key) {
    miss testing this against a `vite build`). Comparing against a
    remembered previous value is idempotent no matter how many times
    the effect body runs for the same `resetKey`. */
-export function usePagination(items, { pageSize = 50, resetKey, persistKey } = {}) {
+export function usePagination(items, { pageSize: initialPageSize = 50, resetKey, persistKey } = {}) {
   const [page, setPage] = useState(() => (persistKey ? readSavedPage(persistKey) : 1));
+  const [pageSize, setPageSizeState] = useState(() => (persistKey ? readSavedPageSize(persistKey, initialPageSize) : initialPageSize));
   const prevResetKey = useRef(resetKey);
 
   useEffect(() => {
@@ -49,6 +61,19 @@ export function usePagination(items, { pageSize = 50, resetKey, persistKey } = {
     try { sessionStorage.setItem(`page:${persistKey}`, String(page)); } catch { /* ignore */ }
   }, [page, persistKey]);
 
+  useEffect(() => {
+    if (!persistKey) return;
+    try { sessionStorage.setItem(`pageSize:${persistKey}`, String(pageSize)); } catch { /* ignore */ }
+  }, [pageSize, persistKey]);
+
+  /* changing how many rows show per page invalidates whatever page
+     number was current — jump back to 1 rather than possibly landing
+     past the new last page. */
+  const setPageSize = (n) => {
+    setPageSizeState(n);
+    setPage(1);
+  };
+
   const total = items.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
@@ -58,5 +83,5 @@ export function usePagination(items, { pageSize = 50, resetKey, persistKey } = {
     [items, safePage, pageSize]
   );
 
-  return { page: safePage, setPage, totalPages, pageItems, pageSize, total };
+  return { page: safePage, setPage, totalPages, pageItems, pageSize, setPageSize, total };
 }

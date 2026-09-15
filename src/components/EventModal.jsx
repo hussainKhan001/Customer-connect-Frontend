@@ -5,7 +5,7 @@ import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from '
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import { todayInput, displayName } from '../utils/core.js';
-import { toast } from '../utils/toast.js';
+import { toast, mutationErrorToast } from '../utils/toast.js';
 
 export default function EventModal({ customer, onClose }) {
   const { mutateCustomer } = useApp();
@@ -23,13 +23,7 @@ export default function EventModal({ customer, onClose }) {
       toast.success('Event logged', `${draft.n} added to ${customer.name}'s record.`);
       onClose();
     } catch (err) {
-      const fieldErrors = err.errors || {};
-      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-      setErrors(fieldErrors);
-      toast.error(
-        hasFieldErrors ? 'Could not save' : 'Could not reach the server',
-        hasFieldErrors ? 'Fix the highlighted field and try again.' : 'Confirm the backend is running and reachable, then try again.'
-      );
+      mutationErrorToast(err, setErrors);
     } finally {
       setSaving(false);
     }

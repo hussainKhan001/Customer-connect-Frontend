@@ -9,7 +9,7 @@ import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from '
 import Modal from './Modal.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
 import { PROJECTS } from '../constants/projects.js';
-import { toast } from '../utils/toast.js';
+import { toast, mutationErrorToast } from '../utils/toast.js';
 
 const PROJ_OPTS = PROJECTS.map((p) => ({ value: p.name, label: p.name }));
 
@@ -74,13 +74,7 @@ export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose
       toast.success('Unit updated', `${draft.unit} — area and rate saved.`);
       onClose();
     } catch (err) {
-      const fieldErrors = err.errors || {};
-      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-      setErrors(fieldErrors);
-      toast.error(
-        hasFieldErrors ? 'Could not save' : 'Could not reach the server',
-        hasFieldErrors ? 'Fix the highlighted field and try again.' : 'Confirm the backend is running and reachable, then try again.'
-      );
+      mutationErrorToast(err, setErrors);
     } finally {
       setSaving(false);
     }

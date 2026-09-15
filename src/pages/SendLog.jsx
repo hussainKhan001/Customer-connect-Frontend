@@ -20,7 +20,7 @@ export default function SendLog() {
 
   const sent = base.filter((c) => c.statements.length).map((c) => ({ c, s: c.statements[0] }));
   const sentSorted = [...sent].sort((a, b) => D(b.s.d) - D(a.s.d));
-  const { page, setPage, totalPages, pageItems: pagedSent } = usePagination(sentSorted, { pageSize: PAGE_SIZE });
+  const { page, setPage, totalPages, pageItems: pagedSent, pageSize, setPageSize } = usePagination(sentSorted, { pageSize: PAGE_SIZE });
   const n = sent.length;
   const pc = (k) => (n ? Math.round((sent.filter((x) => x.s[k]).length / n) * 100) : 0);
   const supp = base.filter((c) => c._blocked).length;
@@ -102,7 +102,7 @@ export default function SendLog() {
         )}
         {n > 0 && (
           <div className="px-4 pb-3">
-            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={sentSorted.length} pageSize={PAGE_SIZE} />
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} total={sentSorted.length} pageSize={pageSize} onPageSizeChange={setPageSize} />
           </div>
         )}
       </Card>

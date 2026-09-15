@@ -7,7 +7,7 @@ import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedCheckbox from './theme/ThemedCheckbox.jsx';
 import { toDateInput } from '../utils/core.js';
-import { toast } from '../utils/toast.js';
+import { toast, mutationErrorToast } from '../utils/toast.js';
 
 export default function LoanModal({ customer, unitIndex, unit, onClose }) {
   const { mutateCustomer } = useApp();
@@ -36,13 +36,7 @@ export default function LoanModal({ customer, unitIndex, unit, onClose }) {
       toast.success('Loan updated', `${unit.unit || 'This unit'} — funding details saved.`);
       onClose();
     } catch (err) {
-      const fieldErrors = err.errors || {};
-      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-      setErrors(fieldErrors);
-      toast.error(
-        hasFieldErrors ? 'Could not save' : 'Could not reach the server',
-        hasFieldErrors ? 'Fix the highlighted field and try again.' : 'Confirm the backend is running and reachable, then try again.'
-      );
+      mutationErrorToast(err, setErrors);
     } finally {
       setSaving(false);
     }

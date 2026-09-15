@@ -9,7 +9,7 @@ import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
 import { todayInput, displayName } from '../utils/core.js';
-import { toast } from '../utils/toast.js';
+import { toast, mutationErrorToast } from '../utils/toast.js';
 
 const STATUS_OPTIONS = [
   { value: 'Booked', label: 'Booked' },
@@ -33,13 +33,7 @@ export default function ReferralModal({ customer, onClose }) {
       toast.success('Referral added', `${draft.n} logged against ${customer.name}.`);
       onClose();
     } catch (err) {
-      const fieldErrors = err.errors || {};
-      const hasFieldErrors = Object.keys(fieldErrors).length > 0;
-      setErrors(fieldErrors);
-      toast.error(
-        hasFieldErrors ? 'Could not save' : 'Could not reach the server',
-        hasFieldErrors ? 'Fix the highlighted field and try again.' : 'Confirm the backend is running and reachable, then try again.'
-      );
+      mutationErrorToast(err, setErrors);
     } finally {
       setSaving(false);
     }
