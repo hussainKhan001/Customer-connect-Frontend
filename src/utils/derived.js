@@ -170,9 +170,20 @@ export function enrich(base, W) {
     const s = score(c, W);
     const g = gate(c);
     const r = roll(c);
+    const rawSeg = segOf(c, W, g, s);
+    /* a manual segmentOverride (see PATCH /:id/segment-override) only
+       takes hold while the gate is open — segOf() already forces 'C'
+       otherwise, and letting an override promote someone past a
+       closed gate would defeat the entire point of the gate. _segRaw
+       is what the score alone says, kept alongside _seg so the UI can
+       show "computed vs. overridden" instead of hiding the real
+       number the moment someone overrides it. */
+    const seg = (g.open && c.segmentOverride?.seg) ? c.segmentOverride.seg : rawSeg;
     return {
       ...c,
-      _s: s, _total: s.total, _seg: segOf(c, W, g, s), _g: g, _blocked: !g.open,
+      _s: s, _total: s.total, _seg: seg, _segRaw: rawSeg,
+      _segOverridden: g.open && !!c.segmentOverride?.seg,
+      _g: g, _blocked: !g.open,
       _gain: r.gain, _value: r.value, _consid: r.consideration, _paid: r.paid,
       _out: r.outstanding, _live: r.units.length, _conf: confidence(c).pct,
       _rate: r.units.length ? (r.units[0].rate || 0) : 0,

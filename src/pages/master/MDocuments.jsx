@@ -56,29 +56,36 @@ export default function MDocuments({ c }) {
     }
   };
 
-  /* an alternative to uploading a copy — attaches a page that already
-     lives somewhere else (a shared Google Drive folder, typically) by
-     URL. Same additive page numbering as a real upload on the backend,
-     just no file for this app to store. */
+  /* an alternative to uploading a copy — attaches one or more pages
+     that already live somewhere else (a shared Google Drive folder,
+     typically) by URL. One link per line, same as picking several
+     files at once: each becomes its own page, additively numbered
+     after whatever's already on file, no file for this app to store. */
   const pasteLink = async (key, label) => {
-    const { value: url, isConfirmed } = await Swal.fire({
+    const { value: raw, isConfirmed } = await Swal.fire({
       icon: 'question',
       title: 'Paste a link',
-      html: `${label} — a link to a file already stored elsewhere (Google Drive, etc.), instead of uploading a copy.`,
-      input: 'url',
-      inputPlaceholder: 'https://drive.google.com/file/d/…/view',
+      html: `${label} — one or more links to files already stored elsewhere (Google Drive, etc.), instead of uploading a copy. One link per line for multiple pages.`,
+      input: 'textarea',
+      inputPlaceholder: 'https://drive.google.com/file/d/…/view\nhttps://drive.google.com/file/d/…/view',
       showCancelButton: true,
-      confirmButtonText: 'Save link',
+      confirmButtonText: 'Save link(s)',
       confirmButtonColor: CONFIRM_COLOR.approve,
-      inputValidator: (v) => (!/^https?:\/\//i.test(v || '') ? 'Paste a full link starting with http:// or https://.' : undefined),
+      inputValidator: (v) => {
+        const lines = String(v || '').split('\n').map((s) => s.trim()).filter(Boolean);
+        if (!lines.length) return 'Paste at least one link.';
+        const bad = lines.find((l) => !/^https?:\/\//i.test(l));
+        return bad ? `"${bad}" isn't a full link — it must start with http:// or https://.` : undefined;
+      },
     });
     if (!isConfirmed) return;
+    const urls = String(raw || '').split('\n').map((s) => s.trim()).filter(Boolean);
     setUploadingKey(key);
     try {
       const res = await apiFetch(`/api/customers/${c.id}/documents/link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, url }),
+        body: JSON.stringify({ key, urls }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -86,7 +93,7 @@ export default function MDocuments({ c }) {
         return;
       }
       patchCustomer(body);
-      toast.success('Link saved', 'On record — click View to open it.');
+      toast.success(urls.length > 1 ? `${urls.length} links saved` : 'Link saved', 'On record — click View to open it.');
     } catch {
       toast.error('Could not reach the server', 'Confirm the backend is running and reachable, then try again.');
     } finally {

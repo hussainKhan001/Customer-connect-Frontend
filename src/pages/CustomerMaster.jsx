@@ -10,6 +10,7 @@ import ThemedSelect from '../components/theme/ThemedSelect.jsx';
 import EditProfileModal from '../components/EditProfileModal.jsx';
 import StatusModal from '../components/StatusModal.jsx';
 import CallModal from '../components/CallModal.jsx';
+import SegmentOverrideModal from '../components/SegmentOverrideModal.jsx';
 import { initials, inrF, fmtD, displayName } from '../utils/core.js';
 import { roll, confidence, segDisplay } from '../utils/derived.js';
 import { STATUSLBL } from '../constants/segments.js';
@@ -64,6 +65,7 @@ export default function CustomerMaster() {
   const [editOpen, setEditOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
+  const [segmentOpen, setSegmentOpen] = useState(false);
 
   /* land on the strongest Segment A record when nobody has been picked */
   const fallback = base.find((c) => c._seg === 'A') || base[0];
@@ -109,7 +111,14 @@ export default function CustomerMaster() {
           <div className="min-w-0">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">{displayName(c)}</h1>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
-              <Chip cls={sd.cls}>{sd.t}</Chip>
+              <button
+                onClick={() => setSegmentOpen(true)}
+                className="inline-flex items-center gap-1 group"
+                title="Override segment"
+              >
+                <Chip cls={sd.cls}>{sd.t}{c._segOverridden ? ' · manual' : ''}</Chip>
+                <Pencil className="w-3 h-3 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 " />
+              </button>
               <button
                 onClick={() => setStatusOpen(true)}
                 className="inline-flex items-center gap-1 group"
@@ -172,6 +181,7 @@ export default function CustomerMaster() {
       {editOpen && <EditProfileModal customer={c} onClose={() => setEditOpen(false)} />}
       {statusOpen && <StatusModal customer={c} onClose={() => setStatusOpen(false)} />}
       {callOpen && <CallModal customer={c} onClose={() => setCallOpen(false)} />}
+      {segmentOpen && <SegmentOverrideModal customer={c} onClose={() => setSegmentOpen(false)} />}
     </>
   );
 }
