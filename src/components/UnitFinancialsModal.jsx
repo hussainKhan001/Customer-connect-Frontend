@@ -17,30 +17,44 @@ const PROPERTY_TYPES = ['Villa', 'Plot', 'Flat', 'Other'];
 const PROPERTY_TYPE_OPTS = [{ value: '', label: 'Select' }, ...PROPERTY_TYPES.map((v) => ({ value: v, label: v }))];
 const FLAT_SUBTYPES = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK', 'Other'];
 const FLAT_SUBTYPE_OPTS = [{ value: '', label: 'Select' }, ...FLAT_SUBTYPES.map((v) => ({ value: v, label: v }))];
+const VILLA_SUBTYPES = ['2BHK', '3BHK', '4BHK', 'Other'];
+const VILLA_SUBTYPE_OPTS = [{ value: '', label: 'Select' }, ...VILLA_SUBTYPES.map((v) => ({ value: v, label: v }))];
 
 /* `unit.type` is one plain string in the database (see UnitSchema) —
-   the nested Villa/Plot/Flat(+BHK)/Other picker is purely a data-entry
-   convenience over that single field, so a value like "Flat - 2BHK"
-   round-trips back into the two dropdowns on re-open, and anything
-   that isn't one of the known shapes (the "—" default included) just
-   lands in "Other" with its raw text preserved rather than lost. */
+   the nested Villa(+BHK)/Plot/Flat(+BHK)/Other picker is purely a
+   data-entry convenience over that single field, so a value like
+   "Flat - 2BHK" or "Villa - 3BHK" round-trips back into the dropdowns
+   on re-open, and anything that isn't one of the known shapes (the
+   "—" default included) just lands in "Other" with its raw text
+   preserved rather than lost. */
 function parseType(raw) {
   const v = String(raw || '').trim();
-  if (!v || v === '—') return { top: '', flatSub: '', customTop: '', customFlat: '' };
-  if (v === 'Villa' || v === 'Plot') return { top: v, flatSub: '', customTop: '', customFlat: '' };
-  if (v === 'Flat') return { top: 'Flat', flatSub: '', customTop: '', customFlat: '' };
+  if (!v || v === '—') return { top: '', flatSub: '', villaSub: '', customTop: '', customFlat: '', customVilla: '' };
+  if (v === 'Plot') return { top: v, flatSub: '', villaSub: '', customTop: '', customFlat: '', customVilla: '' };
+  if (v === 'Flat') return { top: 'Flat', flatSub: '', villaSub: '', customTop: '', customFlat: '', customVilla: '' };
+  if (v === 'Villa') return { top: 'Villa', flatSub: '', villaSub: '', customTop: '', customFlat: '', customVilla: '' };
   const flatMatch = /^Flat - (.+)$/.exec(v);
   if (flatMatch) {
     const sub = flatMatch[1];
-    if (FLAT_SUBTYPES.includes(sub) && sub !== 'Other') return { top: 'Flat', flatSub: sub, customTop: '', customFlat: '' };
-    return { top: 'Flat', flatSub: 'Other', customTop: '', customFlat: sub };
+    if (FLAT_SUBTYPES.includes(sub) && sub !== 'Other') return { top: 'Flat', flatSub: sub, villaSub: '', customTop: '', customFlat: '', customVilla: '' };
+    return { top: 'Flat', flatSub: 'Other', villaSub: '', customTop: '', customFlat: sub, customVilla: '' };
   }
-  return { top: 'Other', flatSub: '', customTop: v, customFlat: '' };
+  const villaMatch = /^Villa - (.+)$/.exec(v);
+  if (villaMatch) {
+    const sub = villaMatch[1];
+    if (VILLA_SUBTYPES.includes(sub) && sub !== 'Other') return { top: 'Villa', flatSub: '', villaSub: sub, customTop: '', customFlat: '', customVilla: '' };
+    return { top: 'Villa', flatSub: '', villaSub: 'Other', customTop: '', customFlat: '', customVilla: sub };
+  }
+  return { top: 'Other', flatSub: '', villaSub: '', customTop: v, customFlat: '', customVilla: '' };
 }
-function buildType({ top, flatSub, customTop, customFlat }) {
+function buildType({ top, flatSub, villaSub, customTop, customFlat, customVilla }) {
   if (top === 'Flat') {
     if (flatSub === 'Other') return customFlat.trim() ? `Flat - ${customFlat.trim()}` : 'Flat';
     return flatSub ? `Flat - ${flatSub}` : 'Flat';
+  }
+  if (top === 'Villa') {
+    if (villaSub === 'Other') return customVilla.trim() ? `Villa - ${customVilla.trim()}` : 'Villa';
+    return villaSub ? `Villa - ${villaSub}` : 'Villa';
   }
   if (top === 'Other') return customTop.trim();
   return top;
@@ -57,11 +71,13 @@ export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose
 
   const set = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
   const setVal = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
-  /* picking a new top-level type drops whatever the flat sub-type/
-     custom-text fields were holding for the previous choice — Villa
-     shouldn't inherit "2BHK" left over from when Flat was selected. */
-  const setTop = (v) => setDraft((d) => ({ ...d, top: v, flatSub: '', customTop: '', customFlat: '' }));
+  /* picking a new top-level type drops whatever the flat/villa
+     sub-type + custom-text fields were holding for the previous
+     choice — Plot shouldn't inherit "2BHK" left over from when Flat
+     or Villa was selected. */
+  const setTop = (v) => setDraft((d) => ({ ...d, top: v, flatSub: '', villaSub: '', customTop: '', customFlat: '', customVilla: '' }));
   const setFlatSub = (v) => setDraft((d) => ({ ...d, flatSub: v, customFlat: '' }));
+  const setVillaSub = (v) => setDraft((d) => ({ ...d, villaSub: v, customVilla: '' }));
 
   const save = async () => {
     setSaving(true);
@@ -131,9 +147,21 @@ export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose
             <input value={draft.customFlat} onChange={set('customFlat')} className={formInputCls(false)} placeholder="e.g. 5BHK, Duplex" />
           </div>
         )}
+        {draft.top === 'Villa' && (
+          <div>
+            <label className={formLabelCls}>Villa configuration</label>
+            <ThemedSelect value={draft.villaSub} onChange={setVillaSub} options={VILLA_SUBTYPE_OPTS} placeholder="Choose a configuration" />
+          </div>
+        )}
+        {draft.top === 'Villa' && draft.villaSub === 'Other' && (
+          <div>
+            <label className={formLabelCls}>Specify configuration</label>
+            <input value={draft.customVilla} onChange={set('customVilla')} className={formInputCls(false)} placeholder="e.g. 5BHK, Duplex" />
+          </div>
+        )}
 
         <div>
-          <label className={formLabelCls}>Saleable sq.ft.</label>
+          <label className={formLabelCls}>{draft.top === 'Plot' ? 'Plot area (sq.ft.)' : 'Saleable sq.ft.'}</label>
           <input type="number" min="0" value={draft.saleable} onChange={set('saleable')} className={formInputCls(!!errors.saleable)} />
           {errors.saleable && <div className={formErrorCls}>{errors.saleable}</div>}
         </div>
