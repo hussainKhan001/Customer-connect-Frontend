@@ -11,7 +11,7 @@ import EditProfileModal from '../components/EditProfileModal.jsx';
 import StatusModal from '../components/StatusModal.jsx';
 import CallModal from '../components/CallModal.jsx';
 import SegmentOverrideModal from '../components/SegmentOverrideModal.jsx';
-import { initials, inrF, fmtD, displayName } from '../utils/core.js';
+import { initials, inrF, fmtD, displayName, hasCoApplicant } from '../utils/core.js';
 import { roll, confidence, segDisplay } from '../utils/derived.js';
 import { STATUSLBL } from '../constants/segments.js';
 
@@ -200,7 +200,7 @@ function Rail({ c, cf, weights, onStatement, onEditProfile, onLogCall }) {
   const s = c._s;
   const miss = [
     !c.captured.dob && 'date of birth',
-    !c.captured.anniv && c.coApplicant && 'anniversary',
+    !c.captured.anniv && hasCoApplicant(c) && 'anniversary',
     !c.captured.occ && 'income band',
     !c.captured.addr && 'current address',
   ].filter(Boolean);
@@ -224,7 +224,9 @@ function Rail({ c, cf, weights, onStatement, onEditProfile, onLogCall }) {
             k="Co-applicant"
             miss={!c.coApplicant}
             v={c.coApplicant ? (
-              <>{c.coApplicant} <span className="text-[10.5px] text-gray-400 dark:text-gray-500">({c.coRelation}{c.coOnAgreement ? ', on agreement' : ', not on agreement'})</span></>
+              hasCoApplicant(c) ? (
+                <>{c.coApplicant} <span className="text-[10.5px] text-gray-400 dark:text-gray-500">({c.coRelation}{c.coOnAgreement ? ', on agreement' : ', not on agreement'})</span></>
+              ) : c.coApplicant
             ) : null}
           />
           <Row k="Mobile" v={c.mobile} />

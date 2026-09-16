@@ -201,7 +201,17 @@ export default function EditProfileModal({ customer, onClose }) {
 
           <div>
             <label className={lblCls}>Co-applicant name</label>
-            <input value={draft.coApplicant} onChange={set('coApplicant')} className={inputCls(false)} placeholder="Not captured" />
+            <div className="flex gap-1.5">
+              <input value={draft.coApplicant} onChange={set('coApplicant')} className={inputCls(false)} placeholder="Not captured" />
+              <button
+                type="button"
+                onClick={() => setVal('coApplicant')('N/A')}
+                className={btnGhost}
+                title="No co-applicant on this booking"
+              >
+                N/A
+              </button>
+            </div>
           </div>
           <div>
             <label className={lblCls}>Relation</label>

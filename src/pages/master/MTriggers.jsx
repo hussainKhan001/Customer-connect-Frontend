@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { Card, Banner, Timeline, Dot, Chip } from '../../components/Ui.jsx';
-import { fmtD, fmtDM, annivIn, daysTo, todayInput } from '../../utils/core.js';
+import { fmtD, fmtDM, annivIn, daysTo, todayInput, hasCoApplicant } from '../../utils/core.js';
 import { roll } from '../../utils/derived.js';
 
 /* Only 'Birthday' and 'Wedding anniversary' are tracked in the exact
@@ -44,7 +44,7 @@ export default function MTriggers({ c }) {
 
   const miss = [
     !c.captured.dob && 'date of birth',
-    !c.captured.anniv && c.coApplicant && 'wedding anniversary',
+    !c.captured.anniv && hasCoApplicant(c) && 'wedding anniversary',
     !c.captured.kid && "children's dates of birth",
   ].filter(Boolean);
 

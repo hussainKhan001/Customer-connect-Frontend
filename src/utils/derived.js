@@ -3,7 +3,7 @@
    propensity score and the segment. Every function here is pure: the
    weights are passed in, never read off a global.
    ===================================================================== */
-import { D, TODAY, addD, yrs, daysTo, annivIn, nextFest, todayInput } from './core.js';
+import { D, TODAY, addD, yrs, daysTo, annivIn, nextFest, todayInput, hasCoApplicant } from './core.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
 import { DEFAULT_W, SEGLBL } from '../constants/segments.js';
 
@@ -103,7 +103,7 @@ export function confidence(c) {
     ['Valuation note dated within 90 days', c.units.every((u) => u.exited || daysTo(u.val.notedOn) >= -VAL_STALE_DAYS)],
     ['DPDP consent recorded', !!c.consent.date],
     ['Date of birth captured', c.captured.dob],
-    ['Anniversary captured', c.captured.anniv || !c.coApplicant],
+    ['Anniversary captured', c.captured.anniv || !hasCoApplicant(c)],
   ];
   const pass = checks.filter((x) => x[1]).length;
   return { checks, pass, total: checks.length, pct: Math.round((pass / checks.length) * 100) };

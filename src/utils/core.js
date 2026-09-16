@@ -82,6 +82,13 @@ export const displayName = (c) => {
 
 export const projByName = (n) => PROJECTS.find((p) => p.name === n);
 
+/* "N/A"/"NA" in coApplicant (see EditProfileModal's quick-fill button)
+   is a deliberate "no co-applicant on this booking" answer, not a real
+   name — anything that infers a spouse relation from the field being
+   non-empty (an anniversary-date requirement, a relation/agreement
+   qualifier in a display) should check this instead of `!!c.coApplicant`. */
+export const hasCoApplicant = (c) => !!c.coApplicant && !/^n\/?a$/i.test(c.coApplicant.trim());
+
 export const nextFest = () => {
   const f = FEST.filter((x) => x.s >= TODAY).sort((a, b) => a.s - b.s)[0];
   return f ? { ...f, days: daysTo(f.s) } : null;
