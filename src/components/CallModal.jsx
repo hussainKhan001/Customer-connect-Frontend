@@ -11,13 +11,12 @@ import ThemedSelect from './theme/ThemedSelect.jsx';
 import { todayInput, displayName } from '../utils/core.js';
 import { toast, mutationErrorToast } from '../utils/toast.js';
 
-const OUTCOME_OPTIONS = [
-  'Interested — follow up', 'Not interested', 'No answer', 'Call back later', 'Converted — re-invested',
-].map((o) => ({ value: o, label: o }));
+const OUTCOMES = ['Interested — follow up', 'Not interested', 'No answer', 'Call back later', 'Converted — re-invested'];
+const OUTCOME_OPTIONS = [...OUTCOMES.map((o) => ({ value: o, label: o })), { value: 'Other', label: 'Other' }];
 
 export default function CallModal({ customer, onClose }) {
   const { mutateCustomer } = useApp();
-  const [draft, setDraft] = useState({ outcome: OUTCOME_OPTIONS[0].value, note: '', date: todayInput() });
+  const [draft, setDraft] = useState({ outcome: OUTCOMES[0], outcomeOther: false, note: '', date: todayInput() });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -52,7 +51,22 @@ export default function CallModal({ customer, onClose }) {
       <div className="space-y-4">
         <div>
           <label className={formLabelCls}>Outcome</label>
-          <ThemedSelect value={draft.outcome} onChange={(v) => setDraft((d) => ({ ...d, outcome: v }))} options={OUTCOME_OPTIONS} />
+          <ThemedSelect
+            value={draft.outcomeOther ? 'Other' : draft.outcome}
+            onChange={(v) => setDraft((d) => (v === 'Other'
+              ? { ...d, outcomeOther: true, outcome: d.outcomeOther ? d.outcome : '' }
+              : { ...d, outcomeOther: false, outcome: v }))}
+            options={OUTCOME_OPTIONS}
+          />
+          {draft.outcomeOther && (
+            <input
+              value={draft.outcome}
+              onChange={set('outcome')}
+              className={`${formInputCls(!!errors.outcome)} mt-1.5`}
+              placeholder="Describe the outcome"
+              autoFocus
+            />
+          )}
           {errors.outcome && <div className={formErrorCls}>{errors.outcome}</div>}
         </div>
         <div>

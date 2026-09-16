@@ -30,6 +30,19 @@ const OWNER_TYPE_OPTS = [
   { value: 'END_USER', label: 'End user' },
 ];
 
+/* both dropdowns below carry an 'Other' option — the backend already
+   accepts an occupation/community outside these lists as free text
+   (see validate.js's validateProfilePatch), this is just the UI for
+   typing one in. `occOther`/`commOther` are the two draft fields that
+   track "the picker is showing Other, type your own" — kept separate
+   from `draft.occupation`/`draft.community` themselves (rather than
+   inferred from "is the value in the list") because the instant
+   someone picks Other, the field is briefly blank while they type,
+   and a blank value looks exactly like "not captured" otherwise. */
+const OCC_OPTS = [...OCC.map((o) => ({ value: o.k, label: o.k })), { value: 'Other', label: 'Other' }];
+const COMM_REAL = COMM.filter((x) => x !== 'Other');
+const COMM_OPTS = [...COMM_REAL.map((x) => ({ value: x, label: x })), { value: 'Other', label: 'Other' }];
+
 function draftFrom(c) {
   return {
     salutation: c.salutation || '',
@@ -50,7 +63,9 @@ function draftFrom(c) {
     corrAddr: c.captured.addr ? c.corrAddr : '',
     city: c.city || '',
     occupation: c.captured.occ ? c.occupation : '',
+    occOther: !!(c.captured.occ && c.occupation) && !OCC.some((o) => o.k === c.occupation),
     community: c.community || '',
+    commOther: !!c.community && !COMM_REAL.includes(c.community),
     consent: {
       whatsapp: !!c.consent.whatsapp, sms: !!c.consent.sms, email: !!c.consent.email,
       marketing: !!c.consent.marketing, children: !!c.consent.children, purpose: c.consent.purpose || '',
@@ -245,17 +260,44 @@ export default function EditProfileModal({ customer, onClose }) {
           <div>
             <label className={lblCls}>Occupation</label>
             <ThemedSelect
-              value={draft.occupation}
-              onChange={setVal('occupation')}
-              options={OCC.map((o) => ({ value: o.k, label: o.k }))}
+              value={draft.occOther ? 'Other' : draft.occupation}
+              onChange={(v) => setDraft((d) => (v === 'Other'
+                ? { ...d, occOther: true, occupation: d.occOther ? d.occupation : '' }
+                : { ...d, occOther: false, occupation: v }))}
+              options={OCC_OPTS}
               placeholder="Not captured"
               className={errors.occupation ? '[&>button]:border-red-400' : ''}
             />
+            {draft.occOther && (
+              <input
+                value={draft.occupation}
+                onChange={set('occupation')}
+                className={`${inputCls(!!errors.occupation)} mt-1.5`}
+                placeholder="Type occupation"
+                autoFocus
+              />
+            )}
             {errors.occupation && <div className={errCls}>{errors.occupation}</div>}
           </div>
           <div>
             <label className={lblCls}>Community</label>
-            <ThemedSelect value={draft.community} onChange={setVal('community')} options={COMM.map((x) => ({ value: x, label: x }))} placeholder="Not captured" />
+            <ThemedSelect
+              value={draft.commOther ? 'Other' : draft.community}
+              onChange={(v) => setDraft((d) => (v === 'Other'
+                ? { ...d, commOther: true, community: d.commOther ? d.community : '' }
+                : { ...d, commOther: false, community: v }))}
+              options={COMM_OPTS}
+              placeholder="Not captured"
+            />
+            {draft.commOther && (
+              <input
+                value={draft.community}
+                onChange={set('community')}
+                className={`${inputCls(false)} mt-1.5`}
+                placeholder="Type community"
+                autoFocus
+              />
+            )}
           </div>
 
           <div className="sm:col-span-2 border-t border-gray-100 dark:border-gray-700 pt-4 mt-1">
