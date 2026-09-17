@@ -93,26 +93,26 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-50 dark:bg-gray-950 print:h-auto print:overflow-visible">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#0B0F19] print:h-auto print:overflow-visible">
       <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} collapsed={collapsed} />
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:overflow-visible">
         {/* Sticky Navbar Header */}
-        <header className="print:hidden sticky top-0 z-30 flex-shrink-0 px-4 sm:px-6 py-2.5 bg-gray-50/80 dark:bg-gray-950/80 backdrop-blur-md">
-          <div className="flex items-center justify-between gap-4 w-full mx-auto px-5 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800/80 shadow-2xs">
+        <header className="print:hidden sticky top-0 z-30 flex-shrink-0 px-4 sm:px-6 py-3 bg-slate-50/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-4 w-full mx-auto px-5 py-2.5 rounded-2xl bg-white/95 dark:bg-[#131C2E]/95 border border-gray-200/80 dark:border-slate-800/90 shadow-2xs">
             <div className="flex items-center gap-3.5">
               <button
                 onClick={toggleSidebar}
-                className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 active:scale-95"
+                className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-xl text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-150 active:scale-95"
                 title="Toggle navigation sidebar"
               >
                 <Menu className="w-4 h-4" />
               </button>
 
-              <div className="min-w-0 flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-400 dark:text-gray-500">
+              <div className="min-w-0 flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-400 dark:text-slate-400">
                 <span className="hidden sm:inline">Neoteric Properties</span>
-                <span className="hidden sm:inline text-gray-300 dark:text-gray-700">/</span>
-                <span className="font-bold text-gray-900 dark:text-white">{page.title}</span>
+                <span className="hidden sm:inline text-gray-300 dark:text-slate-700">/</span>
+                <span className="font-bold text-gray-900 dark:text-white tracking-tight">{page.title}</span>
               </div>
             </div>
 
@@ -124,7 +124,7 @@ export default function App() {
                 type="button"
                 onClick={toggleTheme}
                 aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                className="w-8 sm:w-9 h-8 sm:h-9 flex-shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 shadow-2xs transition-all active:scale-95"
+                className="w-8 sm:w-9 h-8 sm:h-9 flex-shrink-0 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-slate-700/80 shadow-2xs transition-all active:scale-95"
                 title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" />}

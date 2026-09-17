@@ -5,7 +5,6 @@ import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { Card, Chip, Kpi, Kpis, Banner, ScoreBar, Timeline, Meter, healthMeterCls, TableWrap, btnGhost, Avatar, StatsCards } from '../components/Ui.jsx';
 import ValueByProject from '../components/ValueByProject.jsx';
 import { cr, inr, annivIn, daysTo, nextFest } from '../utils/core.js';
-import { PROJECTS } from '../constants/projects.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
 import { GATE_ORDER, roll, triggerList } from '../utils/derived.js';
 import { SEGLBL, SEGMETA } from '../constants/segments.js';
@@ -45,7 +44,7 @@ const HEALTH_FIELDS = [
 ];
 
 export default function CommandCentre() {
-  const { base, incompleteRecords } = useApp();
+  const { base, incompleteRecords, masterData } = useApp();
   const { openCustomer, openSegment } = useAppNavigation();
   const navigate = useNavigate();
 
@@ -68,7 +67,7 @@ export default function CommandCentre() {
   const blk = base.filter((c) => c._blocked);
   const nf = nextFest();
   const ex = exceptions(base);
-  const staleNotes = PROJECTS.filter((p) => daysTo(p.noted) < -VAL_STALE_DAYS);
+  const staleNotes = masterData.projects.filter((p) => daysTo(p.noted) < -VAL_STALE_DAYS);
 
   /* per gate code: how many owners, and how much unrealised gain is sitting behind it */
   const gateRows = GATE_ORDER.map(([code, label]) => {

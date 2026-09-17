@@ -90,26 +90,26 @@ export function Card({ title, hint, children, pad = true, className = '', style 
   return (
     <div className={`glass-card mb-4 overflow-hidden ${className}`.trim()} style={style}>
       {title && (
-        <div className="px-4 py-3 border-b border-gray-100/80 dark:border-gray-800/80 bg-gray-50/50 dark:bg-gray-800/30 flex items-center justify-between gap-2">
-          <h3 className="text-xs font-bold text-gray-900 dark:text-gray-100 tracking-tight uppercase">{title}</h3>
-          {hint != null && <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">{hint}</span>}
+        <div className="px-4 sm:px-5 py-3.5 border-b border-gray-100 dark:border-slate-800/80 bg-gray-50/50 dark:bg-slate-900/40 flex items-center justify-between gap-2">
+          <h3 className="text-xs font-bold text-gray-900 dark:text-slate-100 tracking-wider uppercase">{title}</h3>
+          {hint != null && <span className="text-[11px] font-medium text-gray-400 dark:text-slate-400">{hint}</span>}
         </div>
       )}
-      {pad ? <div className="p-4">{children}</div> : children}
+      {pad ? <div className="p-4 sm:p-5">{children}</div> : children}
     </div>
   );
 }
 
 const BANNER_TONE = {
-  block: 'bg-red-50/90 dark:bg-red-950/20 border-red-500 text-red-900 dark:text-red-300 shadow-xs',
-  ok: 'bg-orange-50/90 dark:bg-orange-950/20 border-primary-500 text-orange-900 dark:text-orange-200 shadow-xs',
-  info: 'bg-blue-50/90 dark:bg-blue-950/20 border-blue-500 text-blue-900 dark:text-blue-200 shadow-xs',
-  warn: 'bg-amber-50/90 dark:bg-amber-950/20 border-amber-500 text-amber-900 dark:text-amber-200 shadow-xs',
-  good: 'bg-green-50/90 dark:bg-green-950/20 border-green-500 text-green-900 dark:text-green-200 shadow-xs',
+  block: 'bg-red-50/90 dark:bg-red-950/20 border-red-500 text-red-900 dark:text-red-300 shadow-2xs',
+  ok: 'bg-orange-50/90 dark:bg-orange-950/20 border-primary-500 text-orange-900 dark:text-orange-200 shadow-2xs',
+  info: 'bg-sky-50/90 dark:bg-sky-950/20 border-sky-500 text-sky-900 dark:text-sky-200 shadow-2xs',
+  warn: 'bg-amber-50/90 dark:bg-amber-950/20 border-amber-500 text-amber-900 dark:text-amber-200 shadow-2xs',
+  good: 'bg-emerald-50/90 dark:bg-emerald-950/20 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-2xs',
 };
 
 export const Banner = ({ kind = 'info', children, style }) => (
-  <div className={`px-4 py-3 rounded-xl border-l-4 text-[13px] leading-relaxed mb-4 backdrop-blur-xs transition-all ${BANNER_TONE[kind] || BANNER_TONE.info}`} style={style}>
+  <div className={`px-4 sm:px-5 py-3.5 rounded-2xl border-l-4 text-[13px] leading-relaxed mb-4 backdrop-blur-md transition-all ${BANNER_TONE[kind] || BANNER_TONE.info}`} style={style}>
     {children}
   </div>
 );
@@ -188,17 +188,6 @@ const STATS_GRID_COLS = {
   9: 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-9',
 };
 
-/* Clickable "stat tile as filter shortcut" grid — Command Centre's
-   segment tiles and Owner Base's project tiles both hand-rolled this
-   same shape independently before this existed. One card:
-   { label, value, sub, icon, iconColor, topBorderColor, filterValue,
-   ringColor, title }. Becomes a real <button> (and shows the
-   ring-highlight when `activeFilter` matches its `filterValue`) only
-   when `onCardClick` is passed — a plain non-interactive <div>
-   otherwise, for a screen that just wants the same tile look with
-   nothing to click. Clicking the already-active card clears the
-   filter (passes '' back), matching how every filter chip elsewhere
-   in this app already toggles off. */
 export function StatsCards({ cards, activeFilter, onCardClick, className = '' }) {
   const cols = STATS_GRID_COLS[cards.length] || STATS_GRID_COLS[4];
   return (
@@ -239,17 +228,6 @@ export function StatsCards({ cards, activeFilter, onCardClick, className = '' })
   );
 }
 
-/* Horizontally scrollable table shell — wide tables scroll inside the
-   card rather than pushing the page sideways. */
-/* `maxHeight` bounds the table's own vertical scroll (with a sticky
-   `<thead>` — see OwnerBase's `th()`) instead of letting a long table
-   push the whole page's scrollbar out — pass it on any table whose
-   row count can get large enough that scrolling the page itself to
-   read a bottom row stops feeling like a data grid. */
-/* forwardRef so a page that scrolls its own row list back to where the
-   user left it (see OwnerBase's scroll-restore-on-back) has something
-   to read/set scrollTop on — plain children have no DOM node of their
-   own to grab. */
 export const TableWrap = forwardRef(({ children, maxHeight, ...rest }, ref) => (
   <div
     ref={ref}
@@ -263,12 +241,6 @@ export const TableWrap = forwardRef(({ children, maxHeight, ...rest }, ref) => (
 
 export const Timeline = ({ children }) => <ul className="list-none m-0 p-0">{children}</ul>;
 
-/* Shared "nothing here yet" state — a screen with zero rows should
-   explain what's missing and why it matters, not leave a bare table
-   header floating over blank space (Referral Tree with no referrals
-   yet, Exit Register with no exits recorded, Send Log before the
-   first statement goes out). `action` is an optional node — usually
-   a btnGhost link into the screen that would create the first row. */
 export const EmptyState = ({ icon: Icon, title, hint, action }) => (
   <div className="flex flex-col items-center justify-center text-center py-10 px-4">
     {Icon && <Icon className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />}
@@ -282,54 +254,40 @@ const DOT_TONE = { g: 'bg-green-500', o: 'bg-primary-500', r: 'bg-red-500', '': 
 
 export const Dot = ({ tone = '' }) => <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${DOT_TONE[tone] || DOT_TONE['']}`} />;
 
-/* Confidence percentages share one colour ramp across every view. */
 export const confColor = (p) =>
   p >= 80 ? 'text-green-600 dark:text-green-400' : p >= 60 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
 export const confMeterCls = (p) => (p >= 80 ? 'g' : p >= 60 ? 'o' : 'r');
 export const healthMeterCls = (p) => (p >= 60 ? 'g' : p >= 40 ? 'o' : 'r');
 
-/* Shared button classes — see UI_STYLE_GUIDE.md §7 */
-export const btnBase = 'rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed';
-export const btnGhost = `${btnBase} bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2`;
+/* Shared button classes */
+export const btnBase = 'rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed';
+export const btnGhost = `${btnBase} bg-gray-100 dark:bg-slate-800/80 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/80 border border-transparent dark:border-slate-700/50 px-4 py-2 shadow-2xs`;
 
-/* Shared field classes for every Modal-based form (label / input / error
-   text / checkbox) — one definition so the growing set of operational
-   edit modals (Status/Complaint/Loan/Valuation/Referral/Event/Exit)
-   don't each redeclare the same Tailwind strings. Named distinctly from
-   Intake.jsx's own separately-scoped local consts of similar names. */
-export const formLabelCls = 'block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1';
+export const formLabelCls = 'block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5';
 export const formInputCls = (bad) =>
-  `w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${bad ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'}`;
+  `w-full px-3.5 py-2 rounded-xl border bg-white dark:bg-slate-900/80 text-gray-900 dark:text-slate-100 text-sm placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all duration-150 ${bad ? 'border-red-500/80' : 'border-gray-300/80 dark:border-slate-700/80'}`;
 export const formErrorCls = 'text-xs text-red-500 mt-1';
-export const formCheckCls = 'w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500';
+export const formCheckCls = 'w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500';
 
-/* Compact pill button for row-level actions inside tables/cards (Edit,
-   Add, Close, Exit, +1 visit, etc.) — a real button (background, hover
-   state) rather than a bare uppercase text link, so it reads as
-   clickable at a glance instead of blending into surrounding labels. */
 const ROW_ACTION_TONE = {
-  primary: 'bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-900/20 dark:text-primary-300 dark:hover:bg-primary-900/30',
-  green: 'bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30',
-  red: 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30',
+  primary: 'bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/50 border border-primary-200/50 dark:border-primary-700/30',
+  green: 'bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50 border border-green-200/50 dark:border-green-700/30',
+  red: 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 border border-red-200/50 dark:border-red-700/30',
 };
 export const rowActionCls = (tone = 'primary') =>
-  `inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full disabled:opacity-40 disabled:cursor-not-allowed ${ROW_ACTION_TONE[tone] || ROW_ACTION_TONE.primary}`;
+  `inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${ROW_ACTION_TONE[tone] || ROW_ACTION_TONE.primary}`;
 
-/* Plain icon-only row action (Edit/Delete at the far right of a table
-   row) — always visible, tinted by tone at rest with a soft hover
-   background, no pill/label. Distinct from rowActionCls above, which
-   is a labelled pill for actions like "+1 visit"/"Close"/"Exit". */
 const TABLE_ICON_TONE = {
-  primary: 'text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20',
-  red: 'text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20',
+  primary: 'text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30',
+  red: 'text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30',
 };
 export const tableIconBtnCls = (tone = 'primary') =>
-  `p-1.5 rounded-md disabled:opacity-40 disabled:cursor-not-allowed ${TABLE_ICON_TONE[tone] || TABLE_ICON_TONE.primary}`;
+  `p-1.5 rounded-lg transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${TABLE_ICON_TONE[tone] || TABLE_ICON_TONE.primary}`;
 
 export function BtnPrimary({ children, className = '', style, ...rest }) {
   return (
     <button
-      className={`${btnBase} bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 shadow-sm hover:shadow-md ${className}`}
+      className={`${btnBase} bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-5 py-2 shadow-md hover:shadow-orange-500/25 hover:-translate-y-0.5 ${className}`}
       style={style}
       {...rest}
     >

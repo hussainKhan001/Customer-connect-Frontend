@@ -2,14 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  --bg-primary: #F5F7FA;
+  --bg-primary: #F8FAFC;
   --bg-secondary: #FFFFFF;
   --bg-card: #FFFFFF;
   --border: #E2E8F0;
   --text-primary: #0F172A;
   --text-secondary: #64748B;
-  --accent: #FF7A00;
+  --accent: #F97316;
 
   --theme-primary: #f97316;
   --theme-primary-light: #fb923c;
@@ -18,13 +22,13 @@
 
 [data-theme="dark"],
 .dark {
-  --bg-primary: #0F172A;
-  --bg-secondary: #172033;
-  --bg-card: #1E293B;
-  --border: #334155;
+  --bg-primary: #0B0F19;
+  --bg-secondary: #111827;
+  --bg-card: #131C2E;
+  --border: #1E293B;
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
-  --accent: #FF7A00;
+  --accent: #F97316;
 }
 
 @layer base {
@@ -43,7 +47,6 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
   }
-
 
   input[type='number']::-webkit-outer-spin-button,
   input[type='number']::-webkit-inner-spin-button {
@@ -68,32 +71,32 @@
 
   /* Modern Glassmorphism & Card Design System */
   .glass-header {
-    @apply bg-white/85 dark:bg-gray-900/85 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800/60 shadow-xs;
+    @apply bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl border-b border-gray-200/80 dark:border-slate-800/80 shadow-xs;
   }
   .glass-panel {
-    @apply bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-gray-200/60 dark:border-gray-800/60 shadow-sm;
+    @apply bg-white/90 dark:bg-[#131C2E]/90 backdrop-blur-xl border border-gray-200/70 dark:border-slate-800/80 shadow-sm;
   }
   .glass-card {
-    @apply bg-white/95 dark:bg-gray-900/95 border border-gray-100 dark:border-gray-800/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.4)] transition-all duration-300 rounded-2xl;
+    @apply bg-white/95 dark:bg-[#131C2E]/90 backdrop-blur-xl border border-gray-200/70 dark:border-slate-800/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_25px_-5px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_10px_35px_-5px_rgba(0,0,0,0.5)] dark:hover:border-slate-700/80 transition-all duration-300 rounded-2xl;
   }
   .pro-card {
-    @apply bg-white/95 dark:bg-gray-900/95 border border-gray-200/70 dark:border-gray-800/80 rounded-2xl shadow-xs hover:shadow-md transition-all duration-200;
+    @apply bg-white/95 dark:bg-[#131C2E]/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/90 rounded-2xl shadow-xs hover:shadow-md transition-all duration-200;
   }
 
   /* Custom scrollbars applied only to designated scroll areas */
-  .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.4) transparent; }
-  .dark .custom-scrollbar { scrollbar-color: rgba(75, 85, 99, 0.4) transparent; }
+  .custom-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(148, 163, 184, 0.4) transparent; }
+  .dark .custom-scrollbar { scrollbar-color: rgba(51, 65, 85, 0.6) transparent; }
   .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.35); border-radius: 9999px; }
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(75, 85, 99, 0.5); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 9999px; }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--theme-primary); }
 
-  .custom-horizontal-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.3) transparent; }
+  .custom-horizontal-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(148, 163, 184, 0.3) transparent; }
   .custom-horizontal-scrollbar::-webkit-scrollbar { height: 5px; }
   .custom-horizontal-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.35); border-radius: 9999px; }
-  .dark .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(75, 85, 99, 0.5); }
+  .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 9999px; }
+  .dark .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); }
   .custom-horizontal-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--theme-primary); }
 
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
@@ -104,17 +107,8 @@
   * { transition: none !important; animation: none !important; }
 }
 
-/* sweetalert2 must sit above everything, including the sidebar
-   (z-[9999]) and the ThemedSelect popup (z-[10050]) — otherwise a
-   confirm/warning dialog doesn't actually block interaction with the
-   rest of the app, defeating the point of a modal. */
 .swal2-container { z-index: 99999 !important; }
 
-/* Browsers drop background colours/gradients on print by default
-   (Chrome's "Background graphics" print option is off unless the page
-   asks otherwise) — without this, the Portfolio Statement's branded
-   header prints as plain black-on-white text, not the document it's
-   designed to look like. */
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
 }

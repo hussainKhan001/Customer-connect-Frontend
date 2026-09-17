@@ -230,6 +230,7 @@ function Rail({ c, cf, weights, onStatement, onEditProfile, onLogCall }) {
             ) : null}
           />
           <Row k="Mobile" v={c.mobile} />
+          <Row k="Alternative mobile" v={c.altMobile} />
           <Row k="Email" v={c.email} />
           <Row k="City" v={c.city} />
           <Row k="Occupation" v={c.captured.occ ? c.occupation : null} miss={!c.captured.occ} />

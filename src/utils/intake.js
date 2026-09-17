@@ -4,7 +4,6 @@
    reconcile is held, never adjusted.
    ===================================================================== */
 import { daysTo } from './core.js';
-import { PROJECTS } from '../constants/projects.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
 
 export const CHECKS = [
@@ -35,8 +34,8 @@ export function exceptions(base) {
   return out.sort((a, b) => b.fails.length - a.fails.length);
 }
 
-export const SAMPLE_DRAFT = () => {
-  const p = PROJECTS[0], sa = 1250, rt = 2000, dc = 0;
+export const SAMPLE_DRAFT = (projects) => {
+  const p = projects[0], sa = 1250, rt = 2000, dc = 0;
   return {
     name: 'Sample Owner', pan: 'ABCPD1234E', mobile: '+91 9425012345',
     project: p.name, unit: 'GC-C-305', saleable: sa, rate: rt, discount: dc,

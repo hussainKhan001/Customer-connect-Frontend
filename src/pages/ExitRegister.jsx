@@ -16,12 +16,15 @@ const tdR = `${td} text-right tabular-nums`;
 const sub2 = 'text-[10.5px] text-gray-400 dark:text-gray-500';
 
 export default function ExitRegister() {
-  const { base } = useApp();
+  const { base, masterData } = useApp();
   const { openCustomer } = useAppNavigation();
 
   const rows = base.flatMap((c) => c.units.filter((x) => x.exited).map((u) => {
     const uc = unitCalc(u);
-    const askValue = u.saleable * projByName(u.project).resale;
+    /* a project renamed/removed from Master Data after this unit
+       exited shouldn't crash a historical row — resale just reads as
+       0 rather than resolving to nothing at all. */
+    const askValue = u.saleable * (projByName(masterData.projects, u.project)?.resale ?? 0);
     const soldValue = u.saleable * u.exitRate;
     return { c, u: uc, soldValue, askValue, gap: askValue - soldValue, comm: soldValue * COMMISSION };
   }));

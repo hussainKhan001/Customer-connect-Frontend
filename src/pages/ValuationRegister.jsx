@@ -1,7 +1,6 @@
 import { useApp } from '../context/AppContext.jsx';
 import { Card, Chip, Banner, TableWrap } from '../components/Ui.jsx';
 import { fmtD, daysTo, psf } from '../utils/core.js';
-import { PROJECTS } from '../constants/projects.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
 
 const th = 'text-left text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 whitespace-nowrap';
@@ -11,8 +10,8 @@ const tdR = `${td} text-right tabular-nums`;
 const sub2 = 'text-[10.5px] text-gray-400 dark:text-gray-500';
 
 export default function ValuationRegister() {
-  const { base } = useApp();
-  const anyStale = PROJECTS.some((p) => daysTo(p.noted) < -VAL_STALE_DAYS);
+  const { base, masterData } = useApp();
+  const anyStale = masterData.projects.some((p) => daysTo(p.noted) < -VAL_STALE_DAYS);
 
   return (
     <>
@@ -35,7 +34,7 @@ export default function ValuationRegister() {
               </tr>
             </thead>
             <tbody>
-              {PROJECTS.map((p) => {
+              {masterData.projects.map((p) => {
                 const stale = daysTo(p.noted) < -VAL_STALE_DAYS;
                 const n = base.filter((c) => c.units.some((u) => u.project === p.name)).length;
                 return (

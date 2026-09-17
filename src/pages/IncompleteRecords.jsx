@@ -5,7 +5,6 @@ import ThemedSelect from '../components/theme/ThemedSelect.jsx';
 import { useApp } from '../context/AppContext.jsx';
 import { usePagination } from '../hooks/usePagination.js';
 import { fmtD } from '../utils/core.js';
-import { PROJECTS } from '../constants/projects.js';
 import { STATUSLBL } from '../constants/segments.js';
 import CompleteRecordModal from '../components/CompleteRecordModal.jsx';
 
@@ -16,7 +15,6 @@ const td = 'px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 align-top
 
 const MISSING_FIELDS = ['PAN', 'Area', 'Rate', 'Consideration', 'Booking date'];
 const STATUS_OPTS = [{ value: '', label: 'All statuses' }, ...Object.keys(STATUSLBL).map((k) => ({ value: k, label: STATUSLBL[k] }))];
-const PROJ_OPTS = [{ value: '', label: 'All projects' }, ...PROJECTS.map((p) => ({ value: p.name, label: p.name }))];
 const MISSING_OPTS = [{ value: '', label: 'Missing anything' }, ...MISSING_FIELDS.map((m) => ({ value: m, label: `Missing ${m}` }))];
 
 function missingFrom(c) {
@@ -31,12 +29,16 @@ function missingFrom(c) {
 }
 
 export default function IncompleteRecords() {
-  const { incompleteRecords } = useApp();
+  const { incompleteRecords, masterData } = useApp();
   const [completing, setCompleting] = useState(null);
   const [filters, setFilters] = useState({ q: '', proj: '', status: '', missing: '' });
 
   const setSel = (k) => (v) => setFilters((f) => ({ ...f, [k]: v }));
   const set = (k) => (e) => setFilters((f) => ({ ...f, [k]: e.target.value }));
+  const PROJ_OPTS = useMemo(
+    () => [{ value: '', label: 'All projects' }, ...masterData.projects.map((p) => ({ value: p.name, label: p.name }))],
+    [masterData.projects]
+  );
 
   /* built off every filter EXCEPT project, so all four project tiles
      keep showing real numbers to click into — same "tile as filter
@@ -48,10 +50,10 @@ export default function IncompleteRecords() {
       && (!filters.q || (c.name + c.id + c.mobile + (u.unit || '')).toLowerCase().includes(filters.q.toLowerCase()));
   }), [incompleteRecords, filters.status, filters.missing, filters.q]);
 
-  const PROJECT_STATS = useMemo(() => PROJECTS.map((p) => ({
+  const PROJECT_STATS = useMemo(() => masterData.projects.map((p) => ({
     name: p.name,
     count: rowsForProjectStats.filter((c) => (c.units[0] || {}).project === p.name).length,
-  })), [rowsForProjectStats]);
+  })), [rowsForProjectStats, masterData.projects]);
 
   const rows = useMemo(() => rowsForProjectStats.filter((c) =>
     !filters.proj || (c.units[0] || {}).project === filters.proj

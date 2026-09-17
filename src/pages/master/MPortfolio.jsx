@@ -43,7 +43,7 @@ export default function MPortfolio({ c }) {
     const result = await Swal.fire({
       icon: 'warning',
       title: 'Delete this unit?',
-      html: `<b>${u.unit}</b> (${u.project}) will be removed from ${c.name}'s record — its ledger, valuation and milestone history go with it.<br/>This cannot be undone.`,
+      html: `<b>${u.unit || 'This unit'}</b> (${u.project}) will be removed from ${c.name}'s record — its ledger, valuation and milestone history go with it.<br/>This cannot be undone.`,
       showCancelButton: true,
       confirmButtonText: 'Delete unit',
       confirmButtonColor: CONFIRM_COLOR.destructive,
@@ -52,7 +52,7 @@ export default function MPortfolio({ c }) {
     setDeletingIdx(idx);
     try {
       await mutateCustomer(`/api/customers/${c.id}/units/${idx}`, { unit: u.unit, project: u.project }, 'DELETE');
-      toast.success('Unit deleted', `${u.unit} (${u.project}) removed.`);
+      toast.success('Unit deleted', `${u.unit || 'The unit'} (${u.project}) removed.`);
     } catch (err) {
       toast.error('Could not delete', err.message);
     } finally {
@@ -87,7 +87,18 @@ export default function MPortfolio({ c }) {
               {r.all.map((u, idx) => (
                 <tr key={idx} className={u.exited ? 'bg-red-50/40 dark:bg-red-900/10' : undefined}>
                   <td className={td}>
-                    <b>{u.unit}</b>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <b>{u.unit}</b>
+                      {u.type && u.type !== '—' ? (
+                        <button onClick={() => setFinIdx(idx)} title="Edit property type">
+                          <Chip cls="k">{u.type.replace(' - ', ' · ')}</Chip>
+                        </button>
+                      ) : (
+                        <button className={`${sub2} underline decoration-dotted`} onClick={() => setFinIdx(idx)}>
+                          Property type not set — click to set
+                        </button>
+                      )}
+                    </div>
                     <div className={sub2}>{u.project}<br />{u.entity}</div>
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <button className={rowActionCls('primary')} onClick={() => setFinIdx(idx)}>

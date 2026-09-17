@@ -2,7 +2,7 @@
    piece missing before the score weights can ever be re-fit against
    real outcomes (see MActivity.jsx's own footer note). Score-only,
    never touches the Contact Gate. */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
 import Modal from './Modal.jsx';
@@ -11,12 +11,13 @@ import ThemedSelect from './theme/ThemedSelect.jsx';
 import { todayInput, displayName } from '../utils/core.js';
 import { toast, mutationErrorToast } from '../utils/toast.js';
 
-const OUTCOMES = ['Interested — follow up', 'Not interested', 'No answer', 'Call back later', 'Converted — re-invested'];
-const OUTCOME_OPTIONS = [...OUTCOMES.map((o) => ({ value: o, label: o })), { value: 'Other', label: 'Other' }];
-
 export default function CallModal({ customer, onClose }) {
-  const { mutateCustomer } = useApp();
-  const [draft, setDraft] = useState({ outcome: OUTCOMES[0], outcomeOther: false, note: '', date: todayInput() });
+  const { mutateCustomer, masterData } = useApp();
+  const OUTCOME_OPTIONS = useMemo(
+    () => [...masterData.callOutcomes.map((o) => ({ value: o, label: o })), { value: 'Other', label: 'Other' }],
+    [masterData.callOutcomes]
+  );
+  const [draft, setDraft] = useState({ outcome: masterData.callOutcomes[0], outcomeOther: false, note: '', date: todayInput() });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 

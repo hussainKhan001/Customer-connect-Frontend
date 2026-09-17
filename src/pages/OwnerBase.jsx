@@ -9,7 +9,6 @@ import { useOwnerBaseFilters } from '../hooks/useOwnerBaseFilters.js';
 import { usePagination } from '../hooks/usePagination.js';
 import { Card, Chip, ScoreBar, TableWrap, confColor, Avatar, tableIconBtnCls, StatsCards, Pagination } from '../components/Ui.jsx';
 import { cr, fmtD, inr, psf } from '../utils/core.js';
-import { PROJECTS, ENTITIES } from '../constants/projects.js';
 import { segDisplay } from '../utils/derived.js';
 import { SEGLBL, STATUSLBL } from '../constants/segments.js';
 import { toast, CONFIRM_COLOR } from '../utils/toast.js';
@@ -25,8 +24,6 @@ const PAGE_SIZE = 50;
 
 const SEG_OPTS = [{ value: '', label: 'All segments' }, ...['A', 'B', 'C', 'D'].map((k) => ({ value: k, label: SEGLBL[k] }))];
 const STATUS_OPTS = [{ value: '', label: 'All status' }, ...Object.keys(STATUSLBL).map((k) => ({ value: k, label: STATUSLBL[k] }))];
-const ENT_OPTS = [{ value: '', label: 'All entities' }, ...ENTITIES.map((e) => ({ value: e, label: e }))];
-const PROJ_OPTS = [{ value: '', label: 'All projects' }, ...PROJECTS.map((p) => ({ value: p.name, label: p.name }))];
 
 const PROJ_META = {
   'Garden City': { icon: Building2, color: 'text-blue-500' },
@@ -58,8 +55,11 @@ const tdTop = `${tdBase} align-top`;
 const tdMidR = `${tdBase} align-middle text-right tabular-nums`;
 
 export default function OwnerBase() {
-  const { base, deleteCustomer } = useApp();
+  const { base, deleteCustomer, masterData } = useApp();
   const { openCustomer } = useAppNavigation();
+  const { projects: PROJECTS, entities: ENTITIES } = masterData;
+  const ENT_OPTS = useMemo(() => [{ value: '', label: 'All entities' }, ...ENTITIES.map((e) => ({ value: e, label: e }))], [ENTITIES]);
+  const PROJ_OPTS = useMemo(() => [{ value: '', label: 'All projects' }, ...PROJECTS.map((p) => ({ value: p.name, label: p.name }))], [PROJECTS]);
   const { filters, setFilters, sort, toggleSort } = useOwnerBaseFilters();
   const [editing, setEditing] = useState(null);
   const [editingUnit, setEditingUnit] = useState(null);

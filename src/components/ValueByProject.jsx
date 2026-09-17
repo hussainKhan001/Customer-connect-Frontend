@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Card, Chip, TableWrap, btnGhost } from './Ui.jsx';
+import { useApp } from '../context/AppContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { cr, inr, fmtD, daysTo } from '../utils/core.js';
-import { PROJECTS } from '../constants/projects.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
 import { unitCalc } from '../utils/derived.js';
 
@@ -13,13 +13,14 @@ import { unitCalc } from '../utils/derived.js';
 const BLOCK = '#ef4444';
 
 export default function ValueByProject({ base }) {
+  const { masterData } = useApp();
   const { getThemeColor } = useTheme();
   const REACH = getThemeColor();
   const [table, setTable] = useState(false);
   const [tip, setTip] = useState(null);
 
   const rows = useMemo(() => {
-    const m = new Map(PROJECTS.map((p) => [p.name, { p, owners: 0, reachable: 0, blocked: 0 }]));
+    const m = new Map(masterData.projects.map((p) => [p.name, { p, owners: 0, reachable: 0, blocked: 0 }]));
     base.forEach((c) => {
       const counted = new Set();
       c.units.forEach((u) => {
@@ -34,7 +35,7 @@ export default function ValueByProject({ base }) {
     return [...m.values()]
       .map((e) => ({ ...e, total: e.reachable + e.blocked, stale: daysTo(e.p.noted) < -VAL_STALE_DAYS }))
       .sort((a, b) => b.total - a.total);
-  }, [base]);
+  }, [base, masterData.projects]);
 
   const max = Math.max(...rows.map((r) => r.total), 1);
   const totReach = rows.reduce((s, r) => s + r.reachable, 0);

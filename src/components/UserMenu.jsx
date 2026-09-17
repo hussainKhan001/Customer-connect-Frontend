@@ -132,7 +132,7 @@ export default function UserMenu() {
                 className="w-full flex items-center justify-between gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-white dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700/80 text-xs font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-2xs"
               >
                 <div className="flex items-center gap-2 truncate">
-                  <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-amber-500 text-[9px] sm:text-[10px] font-bold text-white flex items-center justify-center flex-shrink-0">
+                  <span className="w-4 h-4 sm:w-[18px] sm:h-[18px] rounded-full bg-amber-500 text-[9px] sm:text-[10px] font-bold text-white flex items-center justify-center flex-shrink-0">
                     {initial}
                   </span>
                   <span className="truncate text-xs">{user.role} ({user.email.split('@')[0]}…)</span>

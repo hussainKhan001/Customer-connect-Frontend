@@ -9,27 +9,30 @@
 import ExcelJS from 'exceljs';
 import { SAMPLE_DRAFT } from './intake.js';
 import { FULL_FORM_FIELDS, COMPLAINT_FIELDS } from '../constants/intakeFields.js';
-import { PROJECTS } from '../constants/projects.js';
-import { OCC, COMM } from '../constants/seedData.js';
 
 const SHEET_NAME = 'Owners';
 const TEMPLATE_FILENAME = 'owner-import-template.xlsx';
 
 const norm = (s) => String(s ?? '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
-function sampleRows() {
+/* `masterData` is the live projects/occupations/communities lists (see
+   AppContext) — passed in rather than imported so this template
+   always reflects whatever's actually configured, not whatever
+   constants/projects.js said when this file was written. */
+function sampleRows(masterData) {
+  const { projects, occupations, communities } = masterData;
   const first = {
-    ...SAMPLE_DRAFT(),
+    ...SAMPLE_DRAFT(projects),
     email: 'rahul.verma@example.com', salutation: 'Mr.',
     dob: '1985-06-14', spouseDob: '1990-11-02',
     coApplicant: 'Priya Verma', coRelation: 'Spouse', coOnAgreement: 'Yes',
     kycDate: '2021-04-02', corrAddr: 'B-42, Vivekanand Colony, Gwalior', city: 'Gwalior',
-    occupation: OCC[0].k, community: COMM[0], source: 'Direct walk-in',
+    occupation: occupations[0].k, community: communities[0], source: 'Direct walk-in',
     consentWhatsapp: 'Yes', consentSms: 'Yes', consentEmail: 'No', consentMarketing: 'Yes', consentChildren: 'No',
     consentPurpose: 'Portfolio statements, launch invitations, service updates',
   };
 
-  const p2 = PROJECTS[1] || PROJECTS[0];
+  const p2 = projects[1] || projects[0];
   const rt = 2200, sa = 1450, dc = 20000;
   const second = {
     name: 'Another Sample Owner', pan: 'PQRSX5678M', mobile: '+91 9876543210',
@@ -37,7 +40,7 @@ function sampleRows() {
     dob: '1978-02-28', spouseDob: '',
     coApplicant: '', coRelation: '', coOnAgreement: 'No',
     kycDate: '2022-01-15', corrAddr: '', city: 'Morar',
-    occupation: OCC[3].k, community: COMM[2], source: 'Digital lead',
+    occupation: (occupations[3] || occupations[0]).k, community: communities[2] || communities[0], source: 'Digital lead',
     consentWhatsapp: 'Yes', consentSms: 'No', consentEmail: 'No', consentMarketing: 'No', consentChildren: 'No',
     consentPurpose: 'Service and documentation only',
     project: p2.name, unit: 'RG-B-101', saleable: sa, rate: rt, discount: dc,
@@ -93,13 +96,17 @@ function downloadBlob(buffer, filename) {
 }
 
 /* downloads a template with the exact columns Intake expects, pre-filled
-   with two realistic sample rows — never real owner data. */
-export async function downloadSampleTemplate() {
+   with two realistic sample rows — never real owner data. `masterData`
+   is useApp().masterData (Intake.jsx passes its own copy in), so the
+   Project/Occupation/Community dropdowns in the sheet always match
+   whatever's actually configured on the Master Data page right now. */
+export async function downloadSampleTemplate(masterData) {
+  const { projects, occupations, communities } = masterData;
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet(SHEET_NAME);
   sheet.columns = FULL_FORM_FIELDS.map(([key, label]) => ({ header: label, key, width: 24 }));
   sheet.getRow(1).font = { bold: true };
-  sampleRows().forEach((row) => sheet.addRow(row));
+  sampleRows(masterData).forEach((row) => sheet.addRow(row));
 
   /* a hidden sheet backs the dropdown lists — Excel data validation
      can reference another sheet's range but not an inline list long
@@ -107,14 +114,14 @@ export async function downloadSampleTemplate() {
      actually works rather than one that only fits the short lists. */
   const lists = workbook.addWorksheet('Lists');
   lists.state = 'hidden';
-  lists.getColumn(1).values = ['Project', ...PROJECTS.map((p) => p.name)];
-  lists.getColumn(2).values = ['Occupation', ...OCC.map((o) => o.k)];
-  lists.getColumn(3).values = ['Community', ...COMM];
+  lists.getColumn(1).values = ['Project', ...projects.map((p) => p.name)];
+  lists.getColumn(2).values = ['Occupation', ...occupations.map((o) => o.k)];
+  lists.getColumn(3).values = ['Community', ...communities];
   lists.getColumn(4).values = ['YesNo', 'Yes', 'No'];
 
-  applyListValidation(sheet, 'project', `=Lists!$A$2:$A$${PROJECTS.length + 1}`);
-  applyListValidation(sheet, 'occupation', `=Lists!$B$2:$B$${OCC.length + 1}`);
-  applyListValidation(sheet, 'community', `=Lists!$C$2:$C$${COMM.length + 1}`);
+  applyListValidation(sheet, 'project', `=Lists!$A$2:$A$${projects.length + 1}`);
+  applyListValidation(sheet, 'occupation', `=Lists!$B$2:$B$${occupations.length + 1}`);
+  applyListValidation(sheet, 'community', `=Lists!$C$2:$C$${communities.length + 1}`);
   ['coOnAgreement', 'consentWhatsapp', 'consentSms', 'consentEmail', 'consentMarketing', 'consentChildren']
     .forEach((k) => applyListValidation(sheet, k, '=Lists!$D$2:$D$3'));
 

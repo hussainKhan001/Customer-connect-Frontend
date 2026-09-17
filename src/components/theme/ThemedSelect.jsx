@@ -84,11 +84,11 @@ export default function ThemedSelect({
         type="button"
         ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 h-9 border ${pill ? 'rounded-full' : 'rounded-xl'} shadow-2xs hover:shadow-xs text-xs font-medium bg-white dark:bg-gray-800/80 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700/80 transition-all duration-150 ${
-          open ? 'ring-2 ring-primary-500/30 border-primary-500' : ''
+        className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 h-9 border ${pill ? 'rounded-full' : 'rounded-xl'} shadow-2xs hover:shadow-xs text-xs font-medium bg-white dark:bg-[#131C2E] text-gray-900 dark:text-white border-gray-200 dark:border-slate-700/80 transition-all duration-150 ${
+          open ? 'ring-2 ring-orange-500/30 border-orange-500' : ''
         }`}
       >
-        <span className={`truncate ${selected ? 'font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+        <span className={`truncate ${selected ? 'font-semibold' : 'text-gray-400 dark:text-slate-500'}`}>
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
@@ -97,7 +97,7 @@ export default function ThemedSelect({
       {open && rect && createPortal(
         <div
           ref={popupRef}
-          className="fixed z-[10050] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/80 dark:border-gray-700/80 rounded-2xl shadow-xl overflow-hidden animate-fade-in-down"
+          className="fixed z-[10050] bg-white/95 dark:bg-[#131C2E]/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl overflow-hidden animate-fade-in-down"
           style={{
             left: rect.left,
             width: rect.width,
@@ -108,20 +108,20 @@ export default function ThemedSelect({
           }}
         >
           {showSearch && (
-            <div className="relative p-2 border-b border-gray-100 dark:border-gray-700/80 flex-shrink-0">
+            <div className="relative p-2 border-b border-gray-100 dark:border-slate-800 flex-shrink-0">
               <Search className="w-3.5 h-3.5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search…"
-                className="w-full pl-8 pr-2 py-1 text-xs border rounded-lg bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className="w-full pl-8 pr-2 py-1 text-xs border rounded-lg bg-gray-50 dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
           )}
           <div className="overflow-y-auto overflow-x-hidden custom-scrollbar py-1 min-h-0">
             {filtered.length === 0 && (
-              <div className="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">No matches</div>
+              <div className="px-3 py-2 text-sm text-gray-400 dark:text-slate-500">No matches</div>
             )}
             {filtered.map((o) => (
               <button
@@ -130,8 +130,8 @@ export default function ThemedSelect({
                 onClick={() => { onChange(o.value); setOpen(false); }}
                 className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left ${
                   o.value === value
-                    ? 'bg-primary-50 dark:bg-primary-500/15 text-primary-700 dark:text-primary-300 font-semibold'
-                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60'
+                    ? 'bg-orange-50 dark:bg-orange-500/15 text-orange-700 dark:text-orange-300 font-semibold'
+                    : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/60'
                 }`}
               >
                 <span className="truncate">{o.label}</span>

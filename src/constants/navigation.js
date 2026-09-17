@@ -7,7 +7,7 @@
    ===================================================================== */
 import {
   LayoutDashboard, Users, IdCard, CalendarClock, GitBranch, FileText, Send,
-  Inbox, ClipboardList, LogOut, SlidersHorizontal, BookOpen, ShieldCheck, UserCog, FileWarning,
+  Inbox, ClipboardList, LogOut, SlidersHorizontal, BookOpen, ShieldCheck, UserCog, FileWarning, Database,
 } from 'lucide-react';
 
 /* Route-level code splitting — each page ships as its own chunk,
@@ -30,6 +30,7 @@ import ScoringEngine from '../pages/ScoringEngine.jsx';
 import FieldDictionary from '../pages/FieldDictionary.jsx';
 import AccessGovernance from '../pages/AccessGovernance.jsx';
 import UserManagement from '../pages/UserManagement.jsx';
+import MasterData from '../pages/MasterData.jsx';
 
 /* `path` is always the first URL segment for that page — master/statement
    additionally accept /:id and /:id/:tab, wired directly in App.jsx's
@@ -80,6 +81,9 @@ export const PAGES = [
   { id: 'users', path: 'users', group: 'Build', label: 'User management', Icon: UserCog,
     Component: UserManagement,
     title: 'User Management', desc: 'System Roles, Capabilities & User Access Controls' },
+  { id: 'masterdata', path: 'masterdata', group: 'Build', label: 'Master data', Icon: Database,
+    Component: MasterData,
+    title: 'Master Data', desc: 'Projects, Occupations & Every Dropdown Option List' },
 ];
 
 export const pageById = (id) => PAGES.find((p) => p.id === id);

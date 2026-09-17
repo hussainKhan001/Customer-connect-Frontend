@@ -9,10 +9,36 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useCal
 import { io } from 'socket.io-client';
 import { enrich } from '../utils/derived.js';
 import { DEFAULT_W } from '../constants/segments.js';
+import { PROJECTS as DEFAULT_PROJECTS } from '../constants/projects.js';
+import { OCC as DEFAULT_OCC, COMM as DEFAULT_COMM } from '../constants/seedData.js';
 import { apiFetch, API_BASE } from '../utils/api.js';
 import { useAuth } from './AuthContext.jsx';
 
 const AppContext = createContext(null);
+
+/* Fallbacks for the brief window before the first /api/settings
+   response lands (or if it never does) — every dropdown that used to
+   read a hardcoded constants/*.js list directly now reads
+   useApp().masterData instead, so there always has to be SOMETHING
+   here, the same "never an undefined mid-fetch flash" guarantee
+   fetchSettings already gives the company-letterhead fields. These
+   mirror the Settings schema's own defaults (models/Settings.js) —
+   once that document exists server-side (it always does after the
+   very first boot), these never actually get used. Relations/property
+   types/call outcomes never had a constants/*.js home before — they
+   were inline arrays inside the one modal that used each — so they're
+   defined here instead of inventing a new file for four short lists. */
+const DEFAULT_RELATIONS = ['Spouse', 'Parent', 'Sibling', 'Child'];
+const DEFAULT_PROPERTY_TYPES = ['Villa', 'Plot', 'Flat'];
+const DEFAULT_FLAT_CONFIGS = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK'];
+const DEFAULT_VILLA_CONFIGS = ['2BHK', '3BHK', '4BHK'];
+const DEFAULT_CALL_OUTCOMES = ['Interested — follow up', 'Not interested', 'No answer', 'Call back later', 'Converted — re-invested'];
+const DEFAULT_DOCUMENT_TEMPLATES = {
+  Villa: ['Application', 'Sale Deed', 'Sale Agreement', 'Possession Letter'],
+  Flat: ['Application', 'Sale Deed', 'Sale Agreement', 'Possession Letter'],
+  Plot: ['Application', 'Sale Deed', 'Sale Agreement'],
+  Other: ['Application', 'Sale Deed', 'Sale Agreement'],
+};
 
 export function AppProvider({ children }) {
   const { user } = useAuth();
@@ -53,6 +79,37 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (user) fetchSettings();
   }, [user, fetchSettings]);
+
+  /* every dropdown that used to import a hardcoded constants/*.js list
+     now reads this instead — falls back to this module's own DEFAULT_*
+     constants field-by-field (not "use the fallback object wholesale
+     until settings loads") so a Settings document that's missing just
+     one newer field (an older document, from before some field was
+     added) still serves real data for everything else instead of
+     falling back to nothing. `entities` is derived from `projects`
+     rather than stored on its own, same as the old constants/
+     projects.js ENTITIES export was. */
+  const masterData = useMemo(() => {
+    const projects = settings?.projects?.length ? settings.projects : DEFAULT_PROJECTS;
+    return {
+      projects,
+      entities: [...new Set(projects.map((p) => p.entity))],
+      occupations: settings?.occupations?.length ? settings.occupations : DEFAULT_OCC,
+      communities: settings?.communities?.length ? settings.communities : DEFAULT_COMM.filter((x) => x !== 'Other'),
+      relations: settings?.relations?.length ? settings.relations : DEFAULT_RELATIONS,
+      propertyTypes: settings?.propertyTypes?.length ? settings.propertyTypes : DEFAULT_PROPERTY_TYPES,
+      flatConfigs: settings?.flatConfigs?.length ? settings.flatConfigs : DEFAULT_FLAT_CONFIGS,
+      villaConfigs: settings?.villaConfigs?.length ? settings.villaConfigs : DEFAULT_VILLA_CONFIGS,
+      callOutcomes: settings?.callOutcomes?.length ? settings.callOutcomes : DEFAULT_CALL_OUTCOMES,
+      /* a Mongoose Map serialises to a plain object over JSON — same
+         shape as the DEFAULT_ fallback either way. Object.keys check
+         (not .length, objects don't have one) for "did settings
+         actually carry anything here yet". */
+      documentTemplates: settings?.documentTemplates && Object.keys(settings.documentTemplates).length
+        ? settings.documentTemplates
+        : DEFAULT_DOCUMENT_TEMPLATES,
+    };
+  }, [settings]);
 
   const updateSettings = useCallback(async (patch) => {
     const res = await apiFetch('/api/settings', {
@@ -244,7 +301,7 @@ export function AppProvider({ children }) {
     base, byId, raw, incompleteRecords,
     loading, loadError, live,
     weights, setWeights,
-    settings, updateSettings,
+    settings, updateSettings, masterData,
     addCustomer, addIncompleteCustomer, patchCustomer, updateProfile, mutateCustomer,
     deleteCustomer, deleteAllCustomers,
   };

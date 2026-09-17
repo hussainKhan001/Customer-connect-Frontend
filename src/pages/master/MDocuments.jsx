@@ -10,8 +10,8 @@ import { docsFor } from '../../utils/derived.js';
 import { toast, CONFIRM_COLOR } from '../../utils/toast.js';
 
 export default function MDocuments({ c }) {
-  const { patchCustomer } = useApp();
-  const d = docsFor(c);
+  const { patchCustomer, masterData } = useApp();
+  const d = docsFor(c, masterData.documentTemplates);
   const [preview, setPreview] = useState(null);
   const [uploadingKey, setUploadingKey] = useState(null);
   const [deletingId, setDeletingId] = useState(null);

@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { useTheme } from '../context/ThemeContext.jsx';
-import { Card, Chip, Banner, Timeline } from '../components/Ui.jsx';
+import { Card, Chip, Banner, Timeline, TableWrap } from '../components/Ui.jsx';
 import { inr, nextFest, addD, fmtDM, TODAY, initials, todayInput } from '../utils/core.js';
 import { triggerList } from '../utils/derived.js';
 import { CONFIRM_COLOR } from '../utils/toast.js';
@@ -14,8 +14,9 @@ function Box({ title, list, openCustomer, ack }) {
   const { getThemeColor } = useTheme();
   return (
     <Card title={title} hint={<span className="tabular-nums">{list.length}</span>} pad={false}>
+      <TableWrap maxHeight="560px">
       <Timeline>
-        {list.length ? list.slice(0, 14).map((x, i) => {
+        {list.length ? list.map((x, i) => {
           const isDueToday = x.days === 0 && !x.acked;
           const handledToday = x.days === 0 && x.acked;
           return (
@@ -79,6 +80,7 @@ function Box({ title, list, openCustomer, ack }) {
           </li>
         )}
       </Timeline>
+      </TableWrap>
     </Card>
   );
 }

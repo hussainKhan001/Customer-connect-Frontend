@@ -1,9 +1,6 @@
 /* =====================================================================
    CORE — clock, seeded RNG, formatters, date/money helpers.
-   Swap generateBase() in generator.js for a fetch() against your own
-   API; nothing in the view layer needs to change.
    ===================================================================== */
-import { PROJECTS } from '../constants/projects.js';
 import { FEST } from '../constants/seedData.js';
 
 /* Live local midnight, not a fixed prototype date — see the matching
@@ -14,13 +11,6 @@ import { FEST } from '../constants/seedData.js';
    day — acceptable given how this app is actually used. */
 const _now = new Date();
 export const TODAY = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate());
-
-/* ---- deterministic PRNG so the sample base is identical every load ---- */
-let seed = 20260810;
-export const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
-export const pick = (a) => a[Math.floor(rnd() * a.length)];
-export const ib = (a, b) => Math.floor(a + rnd() * (b - a + 1));
-export const bt = (a, b) => a + rnd() * (b - a);
 
 /* ---- dates ---- */
 export const D = (s) => (s instanceof Date ? s : new Date(s));
@@ -80,7 +70,10 @@ export const displayName = (c) => {
   return new RegExp(`^${stripped}\\.?\\s`, 'i').test(c.name) ? c.name : `${sal} ${c.name}`;
 };
 
-export const projByName = (n) => PROJECTS.find((p) => p.name === n);
+/* takes the live projects list (see AppContext's masterData) rather
+   than importing a static one, so a rename in Master Data resolves
+   correctly here too. */
+export const projByName = (projects, n) => projects.find((p) => p.name === n);
 
 /* "N/A"/"NA" in coApplicant (see EditProfileModal's quick-fill button)
    is a deliberate "no co-applicant on this booking" answer, not a real
@@ -88,6 +81,23 @@ export const projByName = (n) => PROJECTS.find((p) => p.name === n);
    non-empty (an anniversary-date requirement, a relation/agreement
    qualifier in a display) should check this instead of `!!c.coApplicant`. */
 export const hasCoApplicant = (c) => !!c.coApplicant && !/^n\/?a$/i.test(c.coApplicant.trim());
+
+/* `unit.type` is one plain string (see UnitFinancialsModal's Villa/
+   Plot/Flat(+BHK)/Other picker, which is what actually writes it) —
+   "Flat - 2BHK" and "Villa - 3BHK" both need to resolve back to just
+   "Flat"/"Villa" for anything that only cares about the top-level
+   type, docsFor()'s per-property-type document checklist (see
+   derived.js) being the reason this exists. Anything that isn't one
+   of the three known top-level types (including the "—" default and
+   a free-typed "Other" value) reads as 'Other', matching the master
+   data document-checklist fallback. */
+export const topPropertyType = (raw) => {
+  const v = String(raw || '').trim();
+  if (v === 'Plot') return 'Plot';
+  if (v === 'Villa' || v.startsWith('Villa - ')) return 'Villa';
+  if (v === 'Flat' || v.startsWith('Flat - ')) return 'Flat';
+  return 'Other';
+};
 
 export const nextFest = () => {
   const f = FEST.filter((x) => x.s >= TODAY).sort((a, b) => a.s - b.s)[0];

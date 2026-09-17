@@ -3,7 +3,7 @@
    propensity score and the segment. Every function here is pure: the
    weights are passed in, never read off a global.
    ===================================================================== */
-import { D, TODAY, addD, yrs, daysTo, annivIn, nextFest, todayInput, hasCoApplicant } from './core.js';
+import { D, TODAY, yrs, daysTo, annivIn, nextFest, todayInput, hasCoApplicant, topPropertyType } from './core.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
 import { DEFAULT_W, SEGLBL } from '../constants/segments.js';
 
@@ -274,23 +274,41 @@ export function followUpsDue(base) {
 }
 
 /* ---- per-owner document vault ---- */
-/* `key` is a stable identifier for each row, used to match an actual
-   uploaded file (c.documents[]) to the checklist row it belongs to —
-   independent of whether the underlying milestone date is set, since a
-   scanned copy and a recorded date are two different questions. */
-export function docsFor(c) {
+/* Per unit, per row: which documents to even ask for depends on that
+   unit's own top-level property type (Villa/Flat/Plot each want a
+   different set — see topPropertyType() in core.js and the Master
+   Data page's per-type checklist editor), and whether each one is
+   actually on file is purely "has a page been uploaded under this
+   key" (see MDocuments.jsx's pagesFor()) — no longer a stand-in for a
+   milestone date being captured. A unit's agreement/registry/
+   possession dates (MilestonesModal.jsx) are a separate, still-real
+   fact about the booking; they just don't drive this checklist
+   anymore, since a signed date and a scanned copy on file are two
+   different questions and conflating them is what made a row read
+   "on file" with nothing actually attached.
+   `documentTemplates` is useApp().masterData.documentTemplates — a
+   map of property type -> document labels, admin-edited. */
+export function docsFor(c, documentTemplates = {}) {
+  const pagesFor = (key) => (c.documents || []).filter((x) => x.key === key);
+  const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const row = (key, n) => {
+    const pages = pagesFor(key);
+    return { key, n, ok: pages.length > 0, d: pages[0]?.uploadedAt || null };
+  };
+
   const d = [];
   c.units.forEach((u) => {
-    d.push({ key: `allotment-${u.unit}`, n: 'Allotment letter — ' + u.unit, d: addD(u.bookDate, 7), ok: true });
-    d.push({ key: `agreement-${u.unit}`, n: 'Sale agreement — ' + u.unit, d: u.agrDate, ok: !!u.agrDate });
-    d.push({ key: `registry-${u.unit}`, n: 'Registered sale deed — ' + u.unit, d: u.regDate, ok: !!u.regDate });
-    if (u.possDate) d.push({ key: `possession-${u.unit}`, n: 'Possession certificate — ' + u.unit, d: u.possDate, ok: true });
-    if (u.exited) d.push({ key: `transfer-${u.unit}`, n: 'Transfer deed (third party) — ' + u.unit, d: u.exitDate, ok: true });
+    const top = topPropertyType(u.type);
+    const docTypes = documentTemplates[top]?.length ? documentTemplates[top] : (documentTemplates.Other || []);
+    const label = u.unit || 'no unit number yet';
+    docTypes.forEach((docType) => {
+      d.push(row(`${slug(docType)}-${u.unit || 'noNumber'}`, `${docType} — ${label}`));
+    });
+    if (u.exited) d.push(row(`transfer-${u.unit || 'noNumber'}`, 'Transfer deed (third party) — ' + label));
   });
-  d.push({ key: 'kyc', n: 'KYC — PAN and Aadhaar', d: c.kycDate, ok: !!c.kycDate });
   if (c.status === 'TRANSFER_IN_PROGRESS') {
-    d.push({ key: 'succession', n: 'Succession / transfer papers', d: null, ok: false });
-    d.push({ key: 'kyc-nominee', n: 'KYC — nominee', d: null, ok: false });
+    d.push(row('succession', 'Succession / transfer papers'));
+    d.push(row('kyc-nominee', 'KYC — nominee'));
   }
   return d;
 }

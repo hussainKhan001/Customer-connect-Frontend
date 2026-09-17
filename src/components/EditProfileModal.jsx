@@ -3,7 +3,7 @@
    flags as missing: DOB, anniversary, address, occupation, consent,
    plus the adjacent identity fields shown alongside them in the
    Customer Master rail (co-applicant, email, city, community). */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import { useApp } from '../context/AppContext.jsx';
 import { BtnPrimary, btnGhost, formLabelCls as lblCls, formInputCls as inputCls, formErrorCls as errCls } from './Ui.jsx';
@@ -12,13 +12,11 @@ import ThemedSelect from './theme/ThemedSelect.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedCheckbox from './theme/ThemedCheckbox.jsx';
 import { toDateInput, displayName } from '../utils/core.js';
-import { OCC, COMM } from '../constants/seedData.js';
 import { STATUSLBL } from '../constants/segments.js';
 import { toast, CONFIRM_COLOR, mutationErrorToast } from '../utils/toast.js';
 
 const STATUS_OPTIONS = Object.entries(STATUSLBL).map(([value, label]) => ({ value, label }));
 
-const RELATIONS = ['Spouse', 'Parent', 'Sibling', 'Child', 'Other'];
 const CONSENT_ROWS = [
   ['whatsapp', 'WhatsApp'], ['sms', 'SMS'], ['email', 'Email'],
   ['marketing', 'Marketing'], ['children', "Children's data"],
@@ -30,6 +28,12 @@ const OWNER_TYPE_OPTS = [
   { value: 'END_USER', label: 'End user' },
 ];
 
+/* a record saved back when a list still had a literal "Other" option
+   (no custom text alongside it, before this Other-then-type-your-own
+   pattern existed) stored the raw word "Other" itself — not something
+   worth showing back as if it were real custom text. */
+const isBareOther = (v) => /^other$/i.test(String(v || '').trim());
+
 /* both dropdowns below carry an 'Other' option — the backend already
    accepts an occupation/community outside these lists as free text
    (see validate.js's validateProfilePatch), this is just the UI for
@@ -38,16 +42,15 @@ const OWNER_TYPE_OPTS = [
    from `draft.occupation`/`draft.community` themselves (rather than
    inferred from "is the value in the list") because the instant
    someone picks Other, the field is briefly blank while they type,
-   and a blank value looks exactly like "not captured" otherwise. */
-const OCC_OPTS = [...OCC.map((o) => ({ value: o.k, label: o.k })), { value: 'Other', label: 'Other' }];
-const COMM_REAL = COMM.filter((x) => x !== 'Other');
-const COMM_OPTS = [...COMM_REAL.map((x) => ({ value: x, label: x })), { value: 'Other', label: 'Other' }];
-
-function draftFrom(c) {
+   and a blank value looks exactly like "not captured" otherwise.
+   `occupations`/`communities`/`relations` come from useApp().masterData
+   (the Master Data page), not a hardcoded list. */
+function draftFrom(c, { occupations, communities }) {
   return {
     salutation: c.salutation || '',
     name: c.name || '',
     mobile: c.mobile || '',
+    altMobile: c.altMobile || '',
     pan: c.pan || '',
     aadhaarHeld: !!c.aadhaarHeld,
     aadhaarNo: c.aadhaarNo || '',
@@ -62,10 +65,16 @@ function draftFrom(c) {
     email: c.email || '',
     corrAddr: c.captured.addr ? c.corrAddr : '',
     city: c.city || '',
-    occupation: c.captured.occ ? c.occupation : '',
-    occOther: !!(c.captured.occ && c.occupation) && !OCC.some((o) => o.k === c.occupation),
-    community: c.community || '',
-    commOther: !!c.community && !COMM_REAL.includes(c.community),
+    /* a record saved back when Community's list still had a literal
+       "Other" entry (no custom text alongside it) round-trips here as
+       raw value "Other" — showing that as the custom text too would
+       print "Other" twice (the dropdown reading Other, the text box
+       also reading Other). Blank the custom text in that one case so
+       there's something real to type instead of a duplicated label. */
+    occupation: c.captured.occ && !isBareOther(c.occupation) ? c.occupation : '',
+    occOther: !!(c.captured.occ && c.occupation) && !occupations.some((o) => o.k === c.occupation),
+    community: !isBareOther(c.community) ? (c.community || '') : '',
+    commOther: !!c.community && !communities.includes(c.community),
     consent: {
       whatsapp: !!c.consent.whatsapp, sms: !!c.consent.sms, email: !!c.consent.email,
       marketing: !!c.consent.marketing, children: !!c.consent.children, purpose: c.consent.purpose || '',
@@ -77,12 +86,25 @@ function draftFrom(c) {
 }
 
 export default function EditProfileModal({ customer, onClose }) {
-  const { updateProfile, mutateCustomer } = useApp();
-  const [draft, setDraft] = useState(() => draftFrom(customer));
+  const { updateProfile, mutateCustomer, masterData } = useApp();
+  const [draft, setDraft] = useState(() => draftFrom(customer, masterData));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { setDraft(draftFrom(customer)); setErrors({}); }, [customer.id]);
+  const RELATION_OPTS = useMemo(
+    () => [...masterData.relations.map((r) => ({ value: r, label: r })), { value: 'Other', label: 'Other' }],
+    [masterData.relations]
+  );
+  const OCC_OPTS = useMemo(
+    () => [...masterData.occupations.map((o) => ({ value: o.k, label: o.k })), { value: 'Other', label: 'Other' }],
+    [masterData.occupations]
+  );
+  const COMM_OPTS = useMemo(
+    () => [...masterData.communities.map((x) => ({ value: x, label: x })), { value: 'Other', label: 'Other' }],
+    [masterData.communities]
+  );
+
+  useEffect(() => { setDraft(draftFrom(customer, masterData)); setErrors({}); }, [customer.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
   const setVal = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
@@ -162,6 +184,12 @@ export default function EditProfileModal({ customer, onClose }) {
             {errors.mobile && <div className={errCls}>{errors.mobile}</div>}
           </div>
           <div>
+            <label className={lblCls}>Alternative mobile</label>
+            <input value={draft.altMobile} onChange={set('altMobile')} className={inputCls(!!errors.altMobile)} placeholder="Not captured" />
+            {errors.altMobile && <div className={errCls}>{errors.altMobile}</div>}
+          </div>
+
+          <div>
             <label className={lblCls}>PAN</label>
             <input value={draft.pan} onChange={set('pan')} className={inputCls(!!errors.pan)} placeholder="Not captured" />
             {errors.pan && <div className={errCls}>{errors.pan}</div>}
@@ -230,7 +258,7 @@ export default function EditProfileModal({ customer, onClose }) {
           </div>
           <div>
             <label className={lblCls}>Relation</label>
-            <ThemedSelect value={draft.coRelation} onChange={setVal('coRelation')} options={RELATIONS.map((r) => ({ value: r, label: r }))} />
+            <ThemedSelect value={draft.coRelation} onChange={setVal('coRelation')} options={RELATION_OPTS} />
           </div>
 
           <div className="sm:col-span-2">
@@ -269,13 +297,16 @@ export default function EditProfileModal({ customer, onClose }) {
               className={errors.occupation ? '[&>button]:border-red-400' : ''}
             />
             {draft.occOther && (
-              <input
-                value={draft.occupation}
-                onChange={set('occupation')}
-                className={`${inputCls(!!errors.occupation)} mt-1.5`}
-                placeholder="Type occupation"
-                autoFocus
-              />
+              <div className="mt-2.5 pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+                <label className={lblCls}>Specify occupation</label>
+                <input
+                  value={draft.occupation}
+                  onChange={set('occupation')}
+                  className={inputCls(!!errors.occupation)}
+                  placeholder="e.g. Freelance designer"
+                  autoFocus
+                />
+              </div>
             )}
             {errors.occupation && <div className={errCls}>{errors.occupation}</div>}
           </div>
@@ -290,13 +321,16 @@ export default function EditProfileModal({ customer, onClose }) {
               placeholder="Not captured"
             />
             {draft.commOther && (
-              <input
-                value={draft.community}
-                onChange={set('community')}
-                className={`${inputCls(false)} mt-1.5`}
-                placeholder="Type community"
-                autoFocus
-              />
+              <div className="mt-2.5 pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+                <label className={lblCls}>Specify community</label>
+                <input
+                  value={draft.community}
+                  onChange={set('community')}
+                  className={inputCls(false)}
+                  placeholder="e.g. Marwari"
+                  autoFocus
+                />
+              </div>
             )}
           </div>
 

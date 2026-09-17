@@ -4,7 +4,6 @@ import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { Card, Chip, Banner, TableWrap, BtnPrimary, btnGhost, confColor, Avatar } from '../components/Ui.jsx';
 import ThemedSelect from '../components/theme/ThemedSelect.jsx';
 import ThemedCheckbox from '../components/theme/ThemedCheckbox.jsx';
-import { PROJECTS } from '../constants/projects.js';
 import { CHECKS, SAMPLE_DRAFT, exceptions, validateDraft, validateShellDraft } from '../utils/intake.js';
 import { FILES, FORM_FIELDS } from '../constants/intakeFields.js';
 import { downloadSampleTemplate, parseImportFile, downloadComplaintsTemplate, parseComplaintsFile } from '../utils/excel.js';
@@ -28,7 +27,7 @@ const tdCls = 'px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 align-
 const thCls = 'text-left text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 whitespace-nowrap';
 
 export default function Intake() {
-  const { base, addCustomer, addIncompleteCustomer, mutateCustomer } = useApp();
+  const { base, addCustomer, addIncompleteCustomer, mutateCustomer, masterData } = useApp();
   const { openCustomer } = useAppNavigation();
   const [draft, setDraft] = useState(EMPTY);
   const [errors, setErrors] = useState({});
@@ -395,7 +394,7 @@ export default function Intake() {
           like the single-owner form — a row that fails is held and reported, never guessed or partially saved.
         </div>
         <div className="flex flex-wrap items-center gap-3 mb-3">
-          <button className={btnGhost} onClick={() => downloadSampleTemplate()}>
+          <button className={btnGhost} onClick={() => downloadSampleTemplate(masterData)}>
             Download template
           </button>
           <button
@@ -520,7 +519,7 @@ export default function Intake() {
                 <ThemedSelect
                   value={draft[k] ?? ''}
                   onChange={setVal(k)}
-                  options={PROJECTS.map((p) => ({ value: p.name, label: p.name }))}
+                  options={masterData.projects.map((p) => ({ value: p.name, label: p.name }))}
                   placeholder="Choose"
                   className={errors[k] ? '[&>button]:border-red-400' : ''}
                 />
@@ -543,7 +542,7 @@ export default function Intake() {
             <button
               className={`${btnGhost} w-full`}
               disabled={submitting}
-              onClick={() => { setDraft(SAMPLE_DRAFT()); setErrors({}); }}
+              onClick={() => { setDraft(SAMPLE_DRAFT(masterData.projects)); setErrors({}); }}
             >
               Fill with a sample row
             </button>
