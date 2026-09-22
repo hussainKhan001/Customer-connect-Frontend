@@ -31,7 +31,13 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    const body = await res.json();
+    /* a response with no/malformed JSON body (a Render free-tier cold
+       start returning an incomplete response while the instance spins
+       back up, a proxy timeout, ...) must not surface as res.json()'s
+       own raw "Unexpected end of JSON input" — that's a confusing,
+       technical message to show someone trying to sign in. */
+    const body = await res.json().catch(() => null);
+    if (!body) throw new Error('Could not reach the server — it may be waking up after being idle. Please try again in a few seconds.');
     if (!res.ok) throw new Error(body.error || 'Sign-in failed');
     setUser(body.user);
     setRealUser(null);
@@ -54,7 +60,8 @@ export function AuthProvider({ children }) {
      of that piecemeal across the whole app from here. */
   const impersonate = useCallback(async (userId) => {
     const res = await apiFetch(`/api/users/${userId}/impersonate`, { method: 'POST' });
-    const body = await res.json();
+    const body = await res.json().catch(() => null);
+    if (!body) throw new Error('Could not reach the server. Please try again.');
     if (!res.ok) throw new Error(body.error || 'Could not switch user');
     /* a full navigation, not just a reload of wherever the admin
        happened to be sitting — landing on Trigger Calendar or Master
@@ -71,7 +78,8 @@ export function AuthProvider({ children }) {
      a client-held `realUser` alone across a switch). */
   const revertImpersonation = useCallback(async () => {
     const res = await apiFetch('/api/auth/revert-impersonation', { method: 'POST' });
-    const body = await res.json();
+    const body = await res.json().catch(() => null);
+    if (!body) throw new Error('Could not reach the server. Please try again.');
     if (!res.ok) throw new Error(body.error || 'Could not switch back');
     window.location.href = '/command';
     return body.user;
