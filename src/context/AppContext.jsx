@@ -33,12 +33,6 @@ const DEFAULT_PROPERTY_TYPES = ['Villa', 'Plot', 'Flat'];
 const DEFAULT_FLAT_CONFIGS = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK'];
 const DEFAULT_VILLA_CONFIGS = ['2BHK', '3BHK', '4BHK'];
 const DEFAULT_CALL_OUTCOMES = ['Interested — follow up', 'Not interested', 'No answer', 'Call back later', 'Converted — re-invested'];
-const DEFAULT_DOCUMENT_TEMPLATES = {
-  Villa: ['Application', 'Sale Deed', 'Sale Agreement', 'Possession Letter'],
-  Flat: ['Application', 'Sale Deed', 'Sale Agreement', 'Possession Letter'],
-  Plot: ['Application', 'Sale Deed', 'Sale Agreement'],
-  Other: ['Application', 'Sale Deed', 'Sale Agreement'],
-};
 
 export function AppProvider({ children }) {
   const { user } = useAuth();
@@ -101,13 +95,16 @@ export function AppProvider({ children }) {
       flatConfigs: settings?.flatConfigs?.length ? settings.flatConfigs : DEFAULT_FLAT_CONFIGS,
       villaConfigs: settings?.villaConfigs?.length ? settings.villaConfigs : DEFAULT_VILLA_CONFIGS,
       callOutcomes: settings?.callOutcomes?.length ? settings.callOutcomes : DEFAULT_CALL_OUTCOMES,
-      /* a Mongoose Map serialises to a plain object over JSON — same
-         shape as the DEFAULT_ fallback either way. Object.keys check
-         (not .length, objects don't have one) for "did settings
-         actually carry anything here yet". */
-      documentTemplates: settings?.documentTemplates && Object.keys(settings.documentTemplates).length
-        ? settings.documentTemplates
-        : DEFAULT_DOCUMENT_TEMPLATES,
+      /* deliberately NO hardcoded fallback here, unlike every other
+         field above — Master Data's Document Templates editor is the
+         one true source for which document types exist per property
+         type, full stop. A silent client-side default would let a
+         type an admin genuinely emptied out (or never configured)
+         quietly reappear with entries nobody asked for; better to
+         show nothing in the Document Vault than something Master Data
+         doesn't actually say. A Mongoose Map serialises to a plain
+         object over JSON. */
+      documentTemplates: settings?.documentTemplates || {},
     };
   }, [settings]);
 

@@ -337,9 +337,17 @@ export function timelineItems(c) {
 export function docsFor(c, documentTemplates = {}) {
   const pagesFor = (key) => (c.documents || []).filter((x) => x.key === key);
   const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
-  const row = (key, n) => {
+  /* `unit` is null for owner-level rows (succession/nominee papers,
+     not tied to any one unit) — MDocuments.jsx groups by this to
+     render one section per unit instead of one flat list, with a
+     trailing "Owner-level" section for the null-unit rows. `type` is
+     just the document type on its own (no unit suffix), for the row
+     label inside a section that's already titled with the unit; `n`
+     stays the full "Type — Unit" label for places that show a row
+     out of that context (e.g. DocumentPreviewModal's title). */
+  const row = (key, n, unit, type) => {
     const pages = pagesFor(key);
-    return { key, n, ok: pages.length > 0, d: pages[0]?.uploadedAt || null };
+    return { key, n, unit, type, ok: pages.length > 0, d: pages[0]?.uploadedAt || null };
   };
 
   const d = [];
@@ -348,13 +356,13 @@ export function docsFor(c, documentTemplates = {}) {
     const docTypes = documentTemplates[top]?.length ? documentTemplates[top] : (documentTemplates.Other || []);
     const label = u.unit || 'no unit number yet';
     docTypes.forEach((docType) => {
-      d.push(row(`${slug(docType)}-${u.unit || 'noNumber'}`, `${docType} — ${label}`));
+      d.push(row(`${slug(docType)}-${u.unit || 'noNumber'}`, `${docType} — ${label}`, label, docType));
     });
-    if (u.exited) d.push(row(`transfer-${u.unit || 'noNumber'}`, 'Transfer deed (third party) — ' + label));
+    if (u.exited) d.push(row(`transfer-${u.unit || 'noNumber'}`, 'Transfer deed (third party) — ' + label, label, 'Transfer deed (third party)'));
   });
   if (c.status === 'TRANSFER_IN_PROGRESS') {
-    d.push(row('succession', 'Succession / transfer papers'));
-    d.push(row('kyc-nominee', 'KYC — nominee'));
+    d.push(row('succession', 'Succession / transfer papers', null, 'Succession / transfer papers'));
+    d.push(row('kyc-nominee', 'KYC — nominee', null, 'KYC — nominee'));
   }
   return d;
 }
