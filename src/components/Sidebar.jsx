@@ -1,6 +1,7 @@
-import { Fragment } from 'react';
+import { useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { daysTo } from '../utils/core.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
@@ -11,23 +12,34 @@ import { X } from 'lucide-react';
 
 export default function Sidebar({ mobileOpen = false, onCloseMobile, collapsed = false }) {
   const { base, incompleteRecords, masterData } = useApp();
+  const { can } = useAuth();
   const { getThemeColor } = useTheme();
   const location = useLocation();
 
-  const ex = exceptions(base).length;
-  const stale = masterData.projects.filter((p) => daysTo(p.noted) < -VAL_STALE_DAYS).length;
-  const dueToday = dueTodayUnacked(triggerList(base, incompleteRecords)).length;
-  const counts = {
-    base: base.length,
-    triggers: triggerList(base, incompleteRecords).length,
-    intake: ex || '',
-    incomplete: incompleteRecords.length || '',
-    valuation: stale || '',
-    exits: base.filter((c) => c.status === 'EXITED').length,
-  };
-  const alerts = { intake: !!ex, incomplete: !!incompleteRecords.length, valuation: !!stale };
-
-  let lastGroup = null;
+  /* every one of these iterates the full owner base (and triggerList
+     does real date math per row) — cheap once, but this component
+     re-renders on EVERY navigation click purely because useLocation()
+     changed, and recomputing all of it fresh each time is exactly the
+     kind of per-click jank that makes switching sidebar tabs feel
+     laggy even though nothing here actually changed. Recomputed only
+     when the underlying data does. */
+  const { counts, alerts, dueToday } = useMemo(() => {
+    const ex = exceptions(base).length;
+    const stale = masterData.projects.filter((p) => daysTo(p.noted) < -VAL_STALE_DAYS).length;
+    const triggers = triggerList(base, incompleteRecords);
+    return {
+      dueToday: dueTodayUnacked(triggers).length,
+      counts: {
+        base: base.length,
+        triggers: triggers.length,
+        intake: ex || '',
+        incomplete: incompleteRecords.length || '',
+        valuation: stale || '',
+        exits: base.filter((c) => c.status === 'EXITED').length,
+      },
+      alerts: { intake: !!ex, incomplete: !!incompleteRecords.length, valuation: !!stale },
+    };
+  }, [base, incompleteRecords, masterData.projects]);
 
   return (
     <>
@@ -36,7 +48,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, collapsed =
       )}
       <aside
         className={`print:hidden fixed lg:static inset-y-0 left-0 z-[9999] flex flex-col
-          bg-white/95 dark:bg-[#131C2E]/95 backdrop-blur-xl shadow-xl lg:shadow-none
+          bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-xl lg:shadow-none
           border-r border-gray-200/70 dark:border-slate-800/90
           transition-[width,transform] duration-300 ease-in-out h-full
           w-72 max-w-[85vw] lg:max-w-none
@@ -56,19 +68,12 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, collapsed =
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar py-3 px-2 space-y-0.5">
-          {PAGES.filter((p) => p.id !== 'master').map((p) => {
-            const head = p.group !== lastGroup ? p.group : null;
-            lastGroup = p.group;
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar py-3 px-2.5 space-y-1">
+          {PAGES.filter((p) => p.id !== 'master' && (!p.capability || can(p.capability))).map((p) => {
             const Icon = p.Icon;
             return (
-              <Fragment key={p.id}>
-                {head && (
-                  <div className={`px-3 pt-3.5 pb-1 text-[9.5px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-400 pointer-events-none ${collapsed ? 'lg:hidden' : ''}`}>
-                    {head}
-                  </div>
-                )}
                 <NavLink
+                  key={p.id}
                   to={`/${p.path}`}
                   title={collapsed ? p.label : undefined}
                   onClick={() => onCloseMobile?.()}
@@ -80,7 +85,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, collapsed =
                        active item rather than the sidebar showing
                        nothing selected. */
                     const active = isActive || (p.id === 'base' && (location.pathname === '/master' || location.pathname.startsWith('/master/')));
-                    return `flex items-center gap-3 text-left rounded-xl px-3.5 py-2.5 text-[13px] transition-all duration-150 ${collapsed ? 'lg:justify-center lg:px-0' : ''} ${
+                    return `flex items-center gap-3 text-left rounded-lg h-10 px-4 text-[13px] transition-all duration-150 ${collapsed ? 'lg:justify-center lg:px-0' : ''} ${
                       active
                         ? 'font-bold bg-orange-500/10 dark:bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/20 dark:border-orange-500/30 shadow-2xs'
                         : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100/80 dark:hover:bg-slate-800/60 hover:text-gray-900 dark:hover:text-white'
@@ -105,7 +110,6 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile, collapsed =
                     {counts[p.id] ?? ''}
                   </span>
                 </NavLink>
-              </Fragment>
             );
           })}
         </nav>

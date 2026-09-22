@@ -104,6 +104,7 @@ export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose
 
   return (
     <Modal
+      drawer
       title="Edit unit"
       subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}

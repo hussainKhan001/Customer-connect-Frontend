@@ -7,7 +7,7 @@
    partial payment instead. */
 import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
+import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import { todayInput, inrF } from '../utils/core.js';
@@ -39,6 +39,7 @@ export default function ReceiptModal({ customer, unitIndex, unit, outstanding, o
 
   return (
     <Modal
+      drawer
       title="Log a receipt"
       subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}
@@ -51,7 +52,7 @@ export default function ReceiptModal({ customer, unitIndex, unit, outstanding, o
     >
       <div className="space-y-4">
         <div>
-          <label className={formLabelCls}>Amount received</label>
+          <label className={formLabelCls}>Amount received<Req /></label>
           <input type="number" min="0" value={draft.amount} onChange={set('amount')} className={formInputCls(!!errors.amount)} />
           {errors.amount && <div className={formErrorCls}>{errors.amount}</div>}
           {outstanding > 0 && (
@@ -61,7 +62,7 @@ export default function ReceiptModal({ customer, unitIndex, unit, outstanding, o
           )}
         </div>
         <div>
-          <label className={formLabelCls}>Date received</label>
+          <label className={formLabelCls}>Date received<Req /></label>
           <ThemedDate value={draft.date} onChange={setVal('date')} invalid={!!errors.date} />
           {errors.date && <div className={formErrorCls}>{errors.date}</div>}
         </div>

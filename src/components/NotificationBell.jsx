@@ -3,7 +3,7 @@
    already counts for its nav badge, just at header level: a badge
    count of what's due in the next 7 days, and a popover listing them,
    click-to-open like every other trigger row in the app. */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import { Bell, Check, Clock } from 'lucide-react';
@@ -31,14 +31,25 @@ export default function NotificationBell() {
   const { getThemeColor } = useTheme();
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState(null);
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   const triggerRef = useRef(null);
   const popupRef = useRef(null);
   const notifiedIds = useRef(new Set());
 
-  const soon = triggerList(base, incompleteRecords).filter((t) => t.days <= 7);
-  const dueToday = dueTodayUnacked(soon).length;
-  const dueFollowUps = followUpsDue(base);
+  /* this component lives in the header, mounted for the whole session
+     — it re-renders on every route change (the header re-renders for
+     the breadcrumb/title) even though `base` itself hasn't changed,
+     so recomputing triggerList() fresh each time was pure per-click
+     waste. followUpsDue() is kept OUT of this memo and re-derived off
+     `tick` instead, since its answer depends on the current time, not
+     just on `base` — the 30s poll below exists specifically so a
+     follow-up scheduled for "right now" appears without needing an
+     unrelated re-render to happen to fire first. */
+  const { soon, dueToday } = useMemo(() => {
+    const list = triggerList(base, incompleteRecords).filter((t) => t.days <= 7);
+    return { soon: list, dueToday: dueTodayUnacked(list).length };
+  }, [base, incompleteRecords]);
+  const dueFollowUps = useMemo(() => followUpsDue(base), [base, tick]);
 
   const ack = (t) => async (e) => {
     e.stopPropagation();

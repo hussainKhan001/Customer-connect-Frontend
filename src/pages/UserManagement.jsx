@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
-import { Plus, AlertTriangle, Pencil, Trash2, KeyRound, ShieldCheck, Search } from 'lucide-react';
-import { Card, Chip, Banner, TableWrap, BtnPrimary, btnGhost, Avatar, tableIconBtnCls, formLabelCls, formInputCls, formErrorCls } from '../components/Ui.jsx';
+import { Plus, AlertTriangle, Pencil, Trash2, KeyRound, ShieldCheck, Search, UserCircle } from 'lucide-react';
+import { Card, Chip, Banner, TableWrap, BtnPrimary, btnGhost, Avatar, tableIconBtnCls, formLabelCls, formInputCls, formErrorCls, EmptyState } from '../components/Ui.jsx';
 import ThemedSelect from '../components/theme/ThemedSelect.jsx';
 import UserModal from '../components/UserModal.jsx';
 import EditUserModal from '../components/EditUserModal.jsx';
@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useApp } from '../context/AppContext.jsx';
 import { useRoles } from '../hooks/useRoles.js';
 import { CAPABILITIES, openCount } from '../constants/governance.js';
+
+const MODULE = 'Module: User management';
 import { apiFetch } from '../utils/api.js';
 import { toast, CONFIRM_COLOR } from '../utils/toast.js';
 
@@ -66,7 +68,7 @@ const RoleBadge = ({ name }) => (
 );
 
 export default function UserManagement() {
-  const { user: me } = useAuth();
+  const { user: me, can } = useAuth();
   const { raw, deleteAllCustomers, settings, updateSettings } = useApp();
   const { roles, error: rolesError, reload: reloadRoles } = useRoles();
 
@@ -220,6 +222,23 @@ export default function UserManagement() {
 
   if (loadError) return <Banner kind="block">{loadError}</Banner>;
 
+  /* the whole page is account/role administration — no read-only view
+     distinct from managing it — so this gates entry as a unit rather
+     than hiding a dozen individual buttons one by one. Still only a UX
+     convenience: every mutating route here is enforced server-side by
+     the MANAGE_USERS capability regardless — the Module row here only
+     controls whether the PAGE shows, not whether the underlying
+     add/edit/deactivate actions work. */
+  if (!can(MODULE)) {
+    return (
+      <EmptyState
+        icon={ShieldCheck}
+        title="You don't have access to User Management"
+        hint={`Ask an admin to grant the "${MODULE}" capability if you need to manage accounts or roles.`}
+      />
+    );
+  }
+
   return (
     <>
 
@@ -282,8 +301,21 @@ export default function UserManagement() {
               <tbody>
                 {shown.length === 0 && (
                   <tr>
-                    <td className={`${td} text-center text-gray-400 dark:text-gray-500 py-10`} colSpan={5}>
-                      {!users ? 'Loading…' : (q || roleFilter) ? 'No accounts match the selected criteria.' : 'No accounts yet.'}
+                    <td colSpan={5}>
+                      {!users ? (
+                        <div className={`${td} text-center text-gray-400 dark:text-gray-500 py-10`}>Loading…</div>
+                      ) : (
+                        <EmptyState
+                          icon={UserCircle}
+                          title={(q || roleFilter) ? 'No accounts match the selected criteria.' : 'No accounts yet.'}
+                          hint={(q || roleFilter) ? 'Try a different search term or role filter.' : undefined}
+                          action={(q || roleFilter) ? (
+                            <button type="button" onClick={() => { setQ(''); setRoleFilter(''); }} className="text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300">
+                              Clear filters
+                            </button>
+                          ) : undefined}
+                        />
+                      )}
                     </td>
                   </tr>
                 )}

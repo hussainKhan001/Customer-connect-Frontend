@@ -47,8 +47,8 @@ export default function MOverview({ c }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="Position" hint={`${r.units.length} live unit${r.units.length === 1 ? '' : 's'}`}>
-          {r.units.length ? r.units.map((u) => (
-            <div key={u.unit} className="mb-4 last:mb-0">
+          {r.units.length ? r.units.map((u, idx) => (
+            <div key={`${u.unit}-${idx}`} className="mb-4 last:mb-0">
               <div className="flex justify-between">
                 <b>{u.unit}</b>
                 <span className="text-[10.5px] text-gray-400 dark:text-gray-500">{u.project} · {u.type} · {u.saleable} sq.ft.</span>

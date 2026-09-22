@@ -23,6 +23,11 @@ function getScrollParent(el) {
   }
   return null;
 }
+const SIZE_CLS = {
+  md: 'h-10 px-3 py-1.5 text-xs',
+  lg: 'h-11 px-4 py-2 text-sm',
+};
+
 export default function ThemedSelect({
   value,
   onChange,
@@ -31,6 +36,7 @@ export default function ThemedSelect({
   className = '',
   alwaysShowSearch = false,
   pill = false,
+  size = 'md',
 }) {
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState(null);
@@ -84,7 +90,7 @@ export default function ThemedSelect({
         type="button"
         ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 h-9 border ${pill ? 'rounded-full' : 'rounded-xl'} shadow-2xs hover:shadow-xs text-xs font-medium bg-white dark:bg-[#131C2E] text-gray-900 dark:text-white border-gray-200 dark:border-slate-700/80 transition-all duration-150 ${
+        className={`w-full flex items-center justify-between gap-2 border ${pill ? 'rounded-full' : 'rounded-md'} ${SIZE_CLS[size] || SIZE_CLS.md} shadow-2xs hover:shadow-xs font-medium bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-slate-700/80 transition-all duration-150 ${
           open ? 'ring-2 ring-orange-500/30 border-orange-500' : ''
         }`}
       >
@@ -97,7 +103,7 @@ export default function ThemedSelect({
       {open && rect && createPortal(
         <div
           ref={popupRef}
-          className="fixed z-[10050] bg-white/95 dark:bg-[#131C2E]/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-700/80 rounded-2xl shadow-xl overflow-hidden animate-fade-in-down"
+          className="fixed z-[10050] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-700/80 rounded-lg shadow-xl overflow-hidden animate-fade-in-down"
           style={{
             left: rect.left,
             width: rect.width,

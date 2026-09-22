@@ -1,7 +1,10 @@
-import { Card, Banner, TableWrap, Chip } from '../components/Ui.jsx';
+import { ShieldAlert } from 'lucide-react';
+import { Card, Banner, TableWrap, Chip, EmptyState } from '../components/Ui.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useRoles } from '../hooks/useRoles.js';
 import { CAPABILITIES, PERM_LABEL, NON_OVERRIDABLE } from '../constants/governance.js';
+
+const MODULE = 'Module: Access & governance';
 
 const RETENTION = [
   ['Legal file — agreement, registry, KYC', 'Statutory period'],
@@ -23,11 +26,26 @@ const MATRIX_CLS = {
 const matrixTh = 'text-center text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-2 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 whitespace-nowrap';
 
 export default function AccessGovernance() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   /* the matrix is read from the live role table, not from a constant —
      roles are edited on User management, and a governance page that
      describes yesterday's permissions is worse than no page at all */
   const { roles, error } = useRoles();
+
+  /* this page shows every role's full permission matrix at once —
+     grouped with User management/Master Data as admin tooling for the
+     same reason, gated the same way. A direct URL hit bypasses the
+     sidebar's own filter (see navigation.js's `capability` field), so
+     the page has to check this itself too. */
+  if (!can(MODULE)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title="You don't have access to Access & Governance"
+        hint={`Ask an admin to grant the "${MODULE}" capability if you need to view this.`}
+      />
+    );
+  }
 
   const cols = roles || [];
   const myIdx = user ? cols.findIndex((r) => r.name === user.role) : -1;

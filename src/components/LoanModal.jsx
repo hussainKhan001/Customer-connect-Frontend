@@ -44,6 +44,7 @@ export default function LoanModal({ customer, unitIndex, unit, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Edit loan"
       subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
+import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
@@ -59,6 +59,7 @@ export default function ComplaintModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       icon={AlertTriangle}
       title="Log complaint"
       subtitle={`${displayName(customer)} · ${customer.id}`}
@@ -72,7 +73,7 @@ export default function ComplaintModal({ customer, onClose }) {
     >
       <div className="space-y-4">
         <div>
-          <label className={formLabelCls}>Unit</label>
+          <label className={formLabelCls}>Unit<Req /></label>
           {units.length <= 1 ? (
             <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 border rounded-lg border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
               {units.length ? unitLabel(units[0]) : 'No units on file for this owner.'}
@@ -88,23 +89,23 @@ export default function ComplaintModal({ customer, onClose }) {
           {errors.unit && <div className={formErrorCls}>{errors.unit}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>What happened</label>
-          <textarea value={draft.t} onChange={set('t')} rows={2} className={formInputCls(!!errors.t)} placeholder="e.g. Seepage — master bathroom wall" />
+          <label className={formLabelCls}>What happened<Req /></label>
+          <textarea value={draft.t} onChange={set('t')} rows={2} aria-required="true" className={formInputCls(!!errors.t)} placeholder="e.g. Seepage — master bathroom wall" />
           {errors.t && <div className={formErrorCls}>{errors.t}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Raised on</label>
+          <label className={formLabelCls}>Raised on<Req /></label>
           <ThemedDate value={draft.raised} onChange={setVal('raised')} invalid={!!errors.raised} />
           {errors.raised && <div className={formErrorCls}>{errors.raised}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Owner of the fix</label>
-          <input value={draft.owner} onChange={set('owner')} className={formInputCls(!!errors.owner)} placeholder="e.g. AGM CRM" />
+          <label className={formLabelCls}>Owner of the fix<Req /></label>
+          <input value={draft.owner} onChange={set('owner')} aria-required="true" className={formInputCls(!!errors.owner)} placeholder="e.g. AGM CRM" />
           {errors.owner && <div className={formErrorCls}>{errors.owner}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>NCR reference</label>
-          <input value={draft.ncr} onChange={set('ncr')} className={formInputCls(!!errors.ncr)} placeholder="e.g. NCR-2026-0142" />
+          <label className={formLabelCls}>NCR reference<Req /></label>
+          <input value={draft.ncr} onChange={set('ncr')} aria-required="true" className={formInputCls(!!errors.ncr)} placeholder="e.g. NCR-2026-0142" />
           {errors.ncr && <div className={formErrorCls}>{errors.ncr}</div>}
         </div>
         <div className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">

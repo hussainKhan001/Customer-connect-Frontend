@@ -89,7 +89,29 @@ export const CAPABILITIES = [
   'Override the contact gate',
   'Owner status and transfer state',
   'Engagement data — NPS, referrals, events, visits',
+  'Manage events and invite lists',
   'User management — add/edit/deactivate accounts',
+  'Impersonate other user accounts',
+  /* one row per sidebar page — see backend/src/lib/permissions.js's
+     own comment on MODULE_CAPABILITIES for why these are separate
+     from the action rows above. */
+  'Module: Dashboard',
+  'Module: Owner base',
+  'Module: Trigger calendar',
+  'Module: Referral tree',
+  'Module: Events',
+  'Module: Portfolio statement',
+  'Module: Statement send log',
+  'Module: Intake & exceptions',
+  'Module: Incomplete records',
+  'Module: Valuation register',
+  'Module: Exit register',
+  'Module: Scoring engine',
+  'Module: Field dictionary',
+  'Module: Access & governance',
+  'Module: User management',
+  'Module: Master data',
+  'Module: Audit log',
 ];
 
 /* the capability that guards User management itself — the UI warns

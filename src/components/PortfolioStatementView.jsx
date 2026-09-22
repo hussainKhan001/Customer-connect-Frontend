@@ -1,0 +1,179 @@
+/* The statement document itself — the printable letter or the
+   Dashboard view, for exactly ONE owner. Purely presentational: the
+   Letter/Dashboard toggle and the Download PDF/Share on WhatsApp
+   actions live in the caller's footer (see PortfolioStatementDrawer.jsx),
+   not here — this just renders whichever `view` it's told to. */
+import { useEffect } from 'react';
+import PortfolioDashboard from './PortfolioDashboard.jsx';
+import { TODAY, fmtD, inrF, displayName } from '../utils/core.js';
+
+const QTR_END_MONTH = ['March', 'June', 'September', 'December'];
+
+function salutationLine(salutation) {
+  const s = (salutation || '').trim().replace(/\.$/, '').toLowerCase();
+  if (s === 'mr') return 'Dear Sir,';
+  if (['mrs', 'ms', 'smt', 'miss', 'kumari'].includes(s)) return 'Dear Madam,';
+  return 'Dear Sir/Madam,';
+}
+
+export default function PortfolioStatementView({ customer: c, view, S, r, stmtRef }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    let wasDark = false;
+    const onBeforePrint = () => {
+      wasDark = root.classList.contains('dark');
+      if (wasDark) { root.classList.remove('dark'); root.setAttribute('data-theme', 'light'); }
+    };
+    const onAfterPrint = () => {
+      if (wasDark) { root.classList.add('dark'); root.setAttribute('data-theme', 'dark'); }
+    };
+    window.addEventListener('beforeprint', onBeforePrint);
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', onBeforePrint);
+      window.removeEventListener('afterprint', onAfterPrint);
+    };
+  }, []);
+
+  const qtrLabel = `${QTR_END_MONTH[Math.ceil((TODAY.getMonth() + 1) / 3) - 1]} ${TODAY.getFullYear()}`;
+  const addrLines = [c.captured?.addr && c.corrAddr ? c.corrAddr : null, c.city].filter(Boolean);
+
+  return (
+    <>
+      {view === 'dashboard' && <PortfolioDashboard c={c} r={r} companyName={S.companyName} />}
+
+      {/* the document itself is deliberately theme-invariant — a formal
+         letter reads the same on paper regardless of which UI theme
+         happened to be active when it was generated, so nothing below
+         this line carries a dark: variant. */}
+      {view === 'letter' && (
+      <div className="bg-white text-gray-900 max-w-[790px] mx-auto shadow-md print:shadow-none p-8 sm:p-10 font-serif text-[12.5px] leading-relaxed print:max-w-none">
+
+        {/* 1. Letterhead */}
+        <div className="text-center">
+          <p className="text-xl sm:text-2xl font-bold tracking-wide uppercase m-0">{S.companyName}</p>
+          <p className="font-sans text-[11px] tracking-wide text-gray-700 mt-1 mb-1">
+            {S.groupLine}
+          </p>
+          <p className="font-sans text-[10px] text-gray-600 mb-2">
+            Regd. Office: {S.regdOffice}
+            &nbsp;|&nbsp; CIN: {S.cin} &nbsp;|&nbsp; GSTIN: {S.gstin}
+          </p>
+        </div>
+        <div className="border-t-4 border-double border-gray-900 mb-4" />
+
+        {/* 2. Title */}
+        <p className="text-center font-bold text-[15px] tracking-[0.2em] underline underline-offset-4 mb-4">
+          PORTFOLIO STATEMENT
+        </p>
+
+        {/* 3. Ref row */}
+        <div className="flex justify-between text-[12.5px] mb-3">
+          <span><b>Statement No.:</b> {stmtRef}</span>
+          <span><b>Date:</b> {fmtD(TODAY)}</span>
+        </div>
+
+        {/* 4. To */}
+        <div className="mb-3">
+          <p className="m-0">To,</p>
+          <p className="m-0">
+            {displayName(c)}<br />
+            Owner Reference: {c.id}<br />
+            {addrLines.join(', ')}
+          </p>
+        </div>
+
+        {/* 5. Subject */}
+        <p className="font-bold underline underline-offset-2 mb-3">
+          Subject: Portfolio Valuation Statement for the Quarter Ended {qtrLabel}
+        </p>
+
+        {/* 6. Salutation + paragraph */}
+        <p className="mb-2.5">{salutationLine(c.salutation)}</p>
+        <p className="text-justify mb-4">
+          We are pleased to furnish herewith the Portfolio Valuation Statement in respect of the
+          immovable property/properties held by you through {S.companyName} and
+          its group entities, as recorded in our books as on the date mentioned above. The valuation
+          stated herein has been arrived at on the basis of registered resale transactions in the
+          vicinity of the property/properties over the preceding two (2) quarters, floored at the
+          prevailing Government Circle Rate, and is furnished solely for your general information
+          and record.
+        </p>
+
+        {/* 7. Table */}
+        <table className="w-full border-collapse font-sans text-[11px] mb-4">
+          <thead>
+            <tr>
+              <th className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-center w-[8%]">Sr. No.</th>
+              <th className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-center w-[22%]">Project / Unit</th>
+              <th className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-center w-[22%]">Entity</th>
+              <th className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-center w-[16%]">Valuation Date</th>
+              <th className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-center w-[16%]">Current Valuation</th>
+              <th className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-center w-[16%]">Ledger Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {r.units.map((unit, i) => (
+              <tr key={`${unit.unit}-${unit.project}-${i}`}>
+                <td className="border border-gray-900 p-1.5 text-center">{i + 1}</td>
+                <td className="border border-gray-900 p-1.5">{unit.project} / {unit.unit}</td>
+                <td className="border border-gray-900 p-1.5">{unit.entity}</td>
+                <td className="border border-gray-900 p-1.5 text-center">{fmtD(unit.val.notedOn)}</td>
+                <td className="border border-gray-900 p-1.5 text-right">{inrF(unit.currentValue)}</td>
+                <td className="border border-gray-900 p-1.5 text-center">{unit.regDate ? 'Registered' : 'Registry Pending'}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={4} className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-right">
+                Total Valuation / Unrealised Gain
+              </td>
+              <td className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-right">{inrF(r.value)}</td>
+              <td className="border border-gray-900 bg-gray-200 font-bold p-1.5 text-center">{inrF(r.gain)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        {/* 8. Notes */}
+        <p className="font-bold underline underline-offset-2 mb-1.5">Notes:</p>
+        <ol className="list-decimal pl-5 mb-4 space-y-1 text-justify text-[11.5px]">
+          <li>The valuation stated herein is derived from registered resale transactions in the vicinity of the property over the preceding two (2) quarters and is floored at the prevailing Government Circle Rate.</li>
+          <li>Valuations are reviewed and revised on a quarterly basis and are subject to change based on prevailing market conditions at the relevant time.</li>
+          <li>This statement is issued for general information and record-keeping purposes only and does not constitute a legal opinion, financial advice, or a certificate of title.</li>
+          <li>Particulars, if any, reflected as "Not on Record" indicate information not presently available with the Company and do not affect the validity of the remaining particulars stated herein.</li>
+          <li>Property values are subject to market risk and may rise as well as fall; past performance is not indicative of future returns.</li>
+          <li>Any discrepancy in the particulars stated above may kindly be reported in writing to the Company's Registered Office within thirty (30) days of receipt of this statement.</li>
+        </ol>
+
+        {/* 9. Closing */}
+        <p className="mb-1">
+          This statement is issued in good faith based on the records available with the Company as
+          on the date mentioned above, and without prejudice to the rights of either party.
+        </p>
+        <p className="mb-0.5">Thanking you,</p>
+        <p className="font-bold mb-10">For {S.companyName}</p>
+
+        {/* 10. Signature block */}
+        <div className="flex justify-between items-end mb-6">
+          <div className="w-3/5">
+            <div className="border-t border-gray-900 w-56 pt-1 mt-10">
+              <div className="font-bold">Authorised Signatory</div>
+              <div className="font-sans text-[11px] text-gray-600">Manager – Customer Relations</div>
+            </div>
+          </div>
+          <div className="w-28 h-24 border-2 border-dashed border-gray-900 flex items-center justify-center text-center font-sans text-[10.5px] text-gray-600">
+            Company Seal
+          </div>
+        </div>
+
+        {/* 11. Footer */}
+        <div className="flex justify-between items-baseline pt-1.5 border-t border-gray-400 font-sans text-[9.5px] text-gray-600">
+          <span>{S.companyName} · Regd. Office: {S.regdOffice}</span>
+          <span>Page 1 of 1</span>
+        </div>
+      </div>
+      )}
+    </>
+  );
+}

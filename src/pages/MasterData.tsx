@@ -13,18 +13,31 @@
    next dropdown offers. */
 import { useState } from 'react';
 import Swal from 'sweetalert2';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { useApp } from '../context/AppContext.jsx';
-import { Card, Banner, TableWrap, rowActionCls } from '../components/Ui.jsx';
-import StringListEditor from '../components/masterdata/StringListEditor.jsx';
-import ProjectEditorModal from '../components/masterdata/ProjectEditorModal.jsx';
-import OccupationEditorModal from '../components/masterdata/OccupationEditorModal.jsx';
+import { Plus, Pencil, Trash2, ShieldAlert } from 'lucide-react';
+import { useApp as useAppUntyped } from '../context/AppContext.jsx';
+import { useAuth as useAuthUntyped } from '../context/AuthContext.jsx';
+import * as UiModule from '../components/Ui.jsx';
+import StringListEditorUntyped from '../components/masterdata/StringListEditor.jsx';
+import ProjectEditorModal from '../components/masterdata/ProjectEditorModal.tsx';
+import OccupationEditorModalUntyped from '../components/masterdata/OccupationEditorModal.jsx';
 import { toast, CONFIRM_COLOR } from '../utils/toast.js';
+import { useSettingsMutation } from '../hooks/useSettingsMutation.ts';
+import type { Project, Occupation } from '../types/masterData';
 
-const th = 'text-left text-[10px] uppercase tracking-wider text-gray-500 dark:text-slate-400 font-bold px-5 py-4 border-b border-gray-200/80 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-900/60 whitespace-nowrap';
+/* AppContext/AuthContext/Ui.jsx/StringListEditor/OccupationEditorModal are
+   untyped legacy JS shared across the whole app (out of scope to type in
+   this pilot slice) — cast once here at the import boundary. */
+const useApp = useAppUntyped as () => { masterData: any };
+const useAuth = useAuthUntyped as () => { can: (permission: string) => boolean };
+const { Card, Banner, TableWrap, rowActionCls, EmptyState } = UiModule as any;
+const StringListEditor = StringListEditorUntyped as any;
+const OccupationEditorModal = OccupationEditorModalUntyped as any;
+
+const th =
+  'text-left text-[10px] uppercase tracking-wider text-gray-500 dark:text-slate-400 font-bold px-5 py-4 border-b border-gray-200/80 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-900/60 whitespace-nowrap';
 const td = 'px-5 py-4 border-b border-gray-100 dark:border-slate-800/60 align-middle text-sm whitespace-nowrap text-gray-800 dark:text-slate-200';
 
-const STRING_LISTS = [
+const STRING_LISTS: [string, string, string][] = [
   ['communities', 'Community', 'Add a community…'],
   ['relations', 'Co-applicant relation', 'Add a relation…'],
   ['propertyTypes', 'Property type', 'Add a property type…'],
@@ -33,23 +46,43 @@ const STRING_LISTS = [
   ['callOutcomes', 'Call outcome', 'Add an outcome…'],
 ];
 
+const MODULE = 'Module: Master data';
+
 export default function MasterData() {
-  const { masterData, updateSettings } = useApp();
-  const [savingField, setSavingField] = useState(null);
-  const [editingProject, setEditingProject] = useState(null);
-  const [editingOcc, setEditingOcc] = useState(null);
+  const { masterData } = useApp();
+  const { can } = useAuth();
+  const mutation = useSettingsMutation();
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
+  const [editingOcc, setEditingOcc] = useState<Partial<Occupation> | null>(null);
+
+  /* the whole page is a write surface — there's no read-only view of
+     Master Data distinct from editing it — so this gates entry to the
+     page as a unit rather than hiding two dozen individual buttons one
+     by one. Still only a UX convenience: the actual PATCH is enforced
+     server-side by the MANAGE_USERS capability regardless — this
+     Module row only controls whether the page shows. */
+  if (!can(MODULE)) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title="You don't have access to Master Data"
+        hint={`Ask an admin to grant the "${MODULE}" capability if you need to edit these dropdown lists.`}
+      />
+    );
+  }
 
   /* returns whether the save actually succeeded — the two modal save
      handlers below only close their modal on a true result, so a
      rejected save (a duplicate name, a missing field) leaves the form
      open with the error already shown instead of silently vanishing. */
-  const saveField = async (field, value) => {
+  const saveField = async (field: string, value: unknown) => {
     setSavingField(field);
     try {
-      await updateSettings({ [field]: value });
-      toast.success('Saved', 'The new list applies everywhere it\'s used, right away.');
+      await mutation.mutateAsync({ [field]: value });
+      toast.success('Saved', "The new list applies everywhere it's used, right away.");
       return true;
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Could not save', Object.values(err.errors || {})[0] || err.message || 'Try again.');
       return false;
     } finally {
@@ -57,14 +90,14 @@ export default function MasterData() {
     }
   };
 
-  const saveProject = async (proj, originalName) => {
+  const saveProject = async (proj: Project, originalName: string | null) => {
     const next = originalName
-      ? masterData.projects.map((p) => (p.name === originalName ? proj : p))
+      ? masterData.projects.map((p: Project) => (p.name === originalName ? proj : p))
       : [...masterData.projects, proj];
     if (await saveField('projects', next)) setEditingProject(null);
   };
 
-  const removeProject = async (p) => {
+  const removeProject = async (p: Project) => {
     const result = await Swal.fire({
       icon: 'warning',
       title: `Remove "${p.name}"?`,
@@ -74,17 +107,17 @@ export default function MasterData() {
       confirmButtonColor: CONFIRM_COLOR.destructive,
     });
     if (!result.isConfirmed) return;
-    saveField('projects', masterData.projects.filter((x) => x.name !== p.name));
+    saveField('projects', masterData.projects.filter((x: Project) => x.name !== p.name));
   };
 
-  const saveOcc = async (occ, originalK) => {
+  const saveOcc = async (occ: Occupation, originalK: string | null) => {
     const next = originalK
-      ? masterData.occupations.map((o) => (o.k === originalK ? occ : o))
+      ? masterData.occupations.map((o: Occupation) => (o.k === originalK ? occ : o))
       : [...masterData.occupations, occ];
     if (await saveField('occupations', next)) setEditingOcc(null);
   };
 
-  const removeOcc = async (o) => {
+  const removeOcc = async (o: Occupation) => {
     const result = await Swal.fire({
       icon: 'warning',
       title: `Remove "${o.k}"?`,
@@ -94,19 +127,19 @@ export default function MasterData() {
       confirmButtonColor: CONFIRM_COLOR.destructive,
     });
     if (!result.isConfirmed) return;
-    saveField('occupations', masterData.occupations.filter((x) => x.k !== o.k));
+    saveField('occupations', masterData.occupations.filter((x: Occupation) => x.k !== o.k));
   };
 
   /* one property type's checklist per save (see the backend's
      validateDocumentTemplate) — never the whole documentTemplates map,
      so editing Villa's list can't race a stale copy of Flat's. */
-  const saveDocTemplate = async (propertyType, documents) => {
+  const saveDocTemplate = async (propertyType: string, documents: string[]) => {
     const savingKey = `doc:${propertyType}`;
     setSavingField(savingKey);
     try {
-      await updateSettings({ documentTemplate: { propertyType, documents } });
+      await mutation.mutateAsync({ documentTemplate: { propertyType, documents } });
       toast.success('Saved', 'The new checklist applies to every unit of this type, right away.');
-    } catch (err) {
+    } catch (err: any) {
       toast.error('Could not save', Object.values(err.errors || {})[0] || err.message || 'Try again.');
     } finally {
       setSavingField(null);
@@ -124,8 +157,12 @@ export default function MasterData() {
       <Card
         title="Projects"
         hint={
-          <button className="inline-flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-bold px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200/60 dark:border-orange-500/20 transition-all duration-150 hover:scale-105" onClick={() => setEditingProject({})}>
-            <Plus className="w-3.5 h-3.5" />Add project
+          <button
+            className="inline-flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-bold px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200/60 dark:border-orange-500/20 transition-all duration-150 hover:scale-105"
+            onClick={() => setEditingProject({})}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add project
           </button>
         }
       >
@@ -144,9 +181,12 @@ export default function MasterData() {
               </tr>
             </thead>
             <tbody>
-              {masterData.projects.map((p) => (
+              {masterData.projects.map((p: Project) => (
                 <tr key={p.name} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className={td}><b className="font-bold text-gray-900 dark:text-white">{p.name}</b>{p.code && <span className="text-[11px] font-mono text-gray-400 dark:text-slate-400"> · {p.code}</span>}</td>
+                  <td className={td}>
+                    <b className="font-bold text-gray-900 dark:text-white">{p.name}</b>
+                    {p.code && <span className="text-[11px] font-mono text-gray-400 dark:text-slate-400"> · {p.code}</span>}
+                  </td>
                   <td className={td}>{p.entity}</td>
                   <td className={`${td} text-right tabular-nums font-medium`}>{p.launch || '—'}</td>
                   <td className={`${td} text-right tabular-nums font-semibold`}>{p.ask ?? '—'}</td>
@@ -154,8 +194,12 @@ export default function MasterData() {
                   <td className={`${td} text-right tabular-nums font-semibold text-emerald-600 dark:text-emerald-400`}>{p.circle ?? '—'}</td>
                   <td className={`${td} text-[11px] text-gray-400 dark:text-slate-400`}>{p.noted || '—'}</td>
                   <td className={`${td} text-right space-x-1.5`}>
-                    <button className={rowActionCls('primary')} onClick={() => setEditingProject(p)}><Pencil className="w-3 h-3" /></button>
-                    <button className={rowActionCls('red')} onClick={() => removeProject(p)}><Trash2 className="w-3 h-3" /></button>
+                    <button className={rowActionCls('primary')} onClick={() => setEditingProject(p)} title={`Edit ${p.name}`}>
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button className={rowActionCls('red')} onClick={() => removeProject(p)} title={`Remove ${p.name}`}>
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -167,8 +211,12 @@ export default function MasterData() {
       <Card
         title="Occupations"
         hint={
-          <button className="inline-flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-bold px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200/60 dark:border-orange-500/20 transition-all duration-150 hover:scale-105" onClick={() => setEditingOcc({})}>
-            <Plus className="w-3.5 h-3.5" />Add occupation
+          <button
+            className="inline-flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-bold px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200/60 dark:border-orange-500/20 transition-all duration-150 hover:scale-105"
+            onClick={() => setEditingOcc({})}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add occupation
           </button>
         }
       >
@@ -183,14 +231,20 @@ export default function MasterData() {
               </tr>
             </thead>
             <tbody>
-              {masterData.occupations.map((o) => (
+              {masterData.occupations.map((o: Occupation) => (
                 <tr key={o.k} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className={td}><b className="font-semibold text-gray-900 dark:text-white">{o.k}</b></td>
+                  <td className={td}>
+                    <b className="font-semibold text-gray-900 dark:text-white">{o.k}</b>
+                  </td>
                   <td className={`${td} text-right tabular-nums font-semibold`}>{o.b}</td>
                   <td className={`${td} text-[11px] text-gray-400 dark:text-slate-400`}>{o.band || '—'}</td>
                   <td className={`${td} text-right space-x-1.5`}>
-                    <button className={rowActionCls('primary')} onClick={() => setEditingOcc(o)}><Pencil className="w-3 h-3" /></button>
-                    <button className={rowActionCls('red')} onClick={() => removeOcc(o)}><Trash2 className="w-3 h-3" /></button>
+                    <button className={rowActionCls('primary')} onClick={() => setEditingOcc(o)} title={`Edit ${o.k}`}>
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button className={rowActionCls('red')} onClick={() => removeOcc(o)} title={`Remove ${o.k}`}>
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -208,7 +262,7 @@ export default function MasterData() {
             items={masterData[field]}
             placeholder={placeholder}
             saving={savingField === field}
-            onSave={(next) => saveField(field, next)}
+            onSave={(next: string[]) => saveField(field, next)}
           />
         ))}
       </div>
@@ -221,7 +275,7 @@ export default function MasterData() {
         </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {[...new Set([...masterData.propertyTypes, 'Other'])].map((type) => (
+        {[...new Set([...masterData.propertyTypes, 'Other'])].map((type: string) => (
           <StringListEditor
             key={type}
             title={`${type} documents`}
@@ -229,7 +283,7 @@ export default function MasterData() {
             items={masterData.documentTemplates[type] || []}
             placeholder="Add a document…"
             saving={savingField === `doc:${type}`}
-            onSave={(next) => saveDocTemplate(type, next)}
+            onSave={(next: string[]) => saveDocTemplate(type, next)}
           />
         ))}
       </div>

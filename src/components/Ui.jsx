@@ -3,9 +3,10 @@
    to the Tailwind/dark-mode design system (see UI_STYLE_GUIDE.md).
    Prop shapes are unchanged from the original so views keep working.
    ===================================================================== */
-import { Children, forwardRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Children, cloneElement, forwardRef } from 'react';
+import { ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { initials } from '../utils/core.js';
 import ThemedSelect from './theme/ThemedSelect.jsx';
 import { PAGE_SIZE_OPTIONS } from '../hooks/usePagination.js';
@@ -75,10 +76,15 @@ export const ScoreBar = ({ n }) => (
 
 /* A key/value line. `v` may be any node; null or '' reads "not captured"
    so a gap is visible rather than silently blank. */
+/* mobile-first: label above value by default, so a long value (an
+   email, a full address) always has the full row width to wrap into
+   instead of being squeezed onto the label's line — reverts to the
+   original same-line, right-aligned layout from `sm:` up, where a
+   narrow phone width is no longer the constraint. */
 export const Row = ({ k, v, miss }) => (
-  <div className="flex justify-between gap-3 py-1.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0 text-sm">
-    <span className="text-gray-500 dark:text-gray-400">{k}</span>
-    <span className={`font-semibold text-right ${miss ? 'font-normal italic text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100'}`}>
+  <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5 sm:gap-3 py-1.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0 text-sm">
+    <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">{k}</span>
+    <span className={`font-semibold break-words sm:text-right ${miss ? 'font-normal italic text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100'}`}>
       {v == null || v === '' ? 'not captured' : v}
     </span>
   </div>
@@ -109,7 +115,7 @@ const BANNER_TONE = {
 };
 
 export const Banner = ({ kind = 'info', children, style }) => (
-  <div className={`px-4 sm:px-5 py-3.5 rounded-2xl border-l-4 text-[13px] leading-relaxed mb-4 backdrop-blur-md transition-all ${BANNER_TONE[kind] || BANNER_TONE.info}`} style={style}>
+  <div className={`px-4 sm:px-5 py-3.5 rounded-lg border-l-4 text-[13px] leading-relaxed mb-4 backdrop-blur-md transition-all ${BANNER_TONE[kind] || BANNER_TONE.info}`} style={style}>
     {children}
   </div>
 );
@@ -153,7 +159,7 @@ const KPI_ICON_CHIP_DEFAULT = 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:t
 
 export const Kpi = ({ label, value, sub, tone, icon: Icon, active, highlight }) => (
   <div
-    className={`relative bg-white/95 dark:bg-gray-900/95 rounded-2xl p-4 transition-all duration-300 border border-gray-100 dark:border-gray-800/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.4)] ${
+    className={`relative bg-white dark:bg-gray-900 rounded-lg p-4 transition-shadow duration-200 border border-gray-100 dark:border-gray-800/80 shadow-sm hover:shadow-md ${
       active ? 'ring-2 ring-primary-500/50' : highlight ? 'ring-2 ring-blue-500/40 border-blue-400/60 dark:border-blue-500/50' : ''
     }`}
   >
@@ -162,7 +168,7 @@ export const Kpi = ({ label, value, sub, tone, icon: Icon, active, highlight }) 
       <div className={`text-2xl font-extrabold tabular-nums tracking-tight mt-1 ${KPI_TONE[tone] || 'text-gray-900 dark:text-white'}`}>{value}</div>
     </div>
     {Icon && (
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center absolute right-4 bottom-4 transition-transform duration-200 hover:scale-105 ${KPI_ICON_CHIP[tone] || KPI_ICON_CHIP_DEFAULT}`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center absolute right-4 bottom-4 ${KPI_ICON_CHIP[tone] || KPI_ICON_CHIP_DEFAULT}`}>
         <Icon className="w-5 h-5" strokeWidth={2.2} />
       </div>
     )}
@@ -202,10 +208,10 @@ export function StatsCards({ cards, activeFilter, onCardClick, className = '' })
             key={c.filterValue ?? c.label}
             type={clickable ? 'button' : undefined}
             title={c.title}
-            className={`relative rounded-xl sm:rounded-2xl p-2.5 sm:p-4 pr-8 sm:pr-11 text-left transition-shadow duration-150 border cursor-pointer overflow-hidden ${
+            className={`relative rounded-lg p-2.5 sm:p-4 pr-8 sm:pr-11 text-left transition-shadow duration-150 border cursor-pointer overflow-hidden ${
               isSelected
-                ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500 ring-2 ring-primary-500/50 shadow-md'
-                : 'bg-white dark:bg-gray-900/90 border-gray-200/80 dark:border-gray-800 shadow-2xs hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700'
+                ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500 ring-2 ring-primary-500/50 shadow-sm'
+                : 'bg-white dark:bg-gray-900 border-gray-200/80 dark:border-gray-800 shadow-xs hover:shadow-sm hover:border-gray-300 dark:hover:border-gray-700'
             }`}
             onClick={clickable ? () => onCardClick(isSelected ? '' : c.filterValue) : undefined}
           >
@@ -260,12 +266,64 @@ export const confMeterCls = (p) => (p >= 80 ? 'g' : p >= 60 ? 'o' : 'r');
 export const healthMeterCls = (p) => (p >= 60 ? 'g' : p >= 40 ? 'o' : 'r');
 
 /* Shared button classes */
-export const btnBase = 'rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed';
+export const btnBase = 'rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed';
 export const btnGhost = `${btnBase} bg-gray-100 dark:bg-slate-800/80 text-gray-700 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700/80 border border-transparent dark:border-slate-700/50 px-4 py-2 shadow-2xs`;
 
 export const formLabelCls = 'block text-xs font-semibold text-gray-600 dark:text-slate-300 mb-1.5';
+/* Visual + semantic marker for a genuinely required field — schema-
+   enforced (backend rejects the save without it), not merely "usually
+   filled in". Most fields in this app are intentionally optional
+   ("not captured" is a valid, common state), so this is reserved for
+   the few that actually are, rather than sprinkled on every label. */
+export const Req = () => <span className="text-red-500 dark:text-red-400 ml-0.5" aria-hidden="true">*</span>;
+
+/* Hides or disables a control the current user's role can't use — see
+   AuthContext's `can()`. This is a UX convenience, never the
+   authorization boundary: every mutating route re-checks
+   requirePermission() itself server-side regardless of what this
+   renders, so a stale or tampered client value can only ever hide a
+   button too aggressively, never grant an action it shouldn't.
+   `mode="hide"` (default) renders `fallback` (nothing, by default)
+   instead of the control; `mode="disable"` keeps the control visible
+   but disabled with a title explaining why, which reads better for an
+   action someone expects to eventually get (ask their admin) rather
+   than one that was never theirs to see. */
+export function PermissionGate({ capability, children, fallback = null, mode = 'hide' }) {
+  const { can } = useAuth();
+  if (can(capability)) return children;
+  if (mode !== 'disable') return fallback;
+  const child = Children.only(children);
+  return cloneElement(child, {
+    disabled: true,
+    title: `Your role does not have access to: ${capability}`,
+  });
+}
+
+/* Whole-page version of PermissionGate — for a page that's entirely a
+   write surface (Master Data) or entirely about one capability's data
+   (Owner Base, Trigger Calendar, ...), so there's no partial view to
+   still show. Same UX-convenience caveat: the underlying data these
+   pages read is already loaded client-side in AppContext for every
+   signed-in user regardless of role (this app has no per-role scoped
+   fetching yet — see permissions.js's own note on that), so this hides
+   the SCREEN, not the data; it is not a substitute for server-side
+   scoping if that's ever added. A direct URL hit is still caught here
+   even when the sidebar link that would have led here was already
+   hidden (see navigation.js's `capability` field). */
+export function PageGate({ capability, label, children }) {
+  const { can } = useAuth();
+  if (can(capability)) return children;
+  return (
+    <EmptyState
+      icon={ShieldAlert}
+      title={`You don't have access to ${label}`}
+      hint={`Ask an admin to grant the "${capability}" capability if you need this.`}
+    />
+  );
+}
+
 export const formInputCls = (bad) =>
-  `w-full px-3.5 py-2 rounded-xl border bg-white dark:bg-slate-900/80 text-gray-900 dark:text-slate-100 text-sm placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all duration-150 ${bad ? 'border-red-500/80' : 'border-gray-300/80 dark:border-slate-700/80'}`;
+  `w-full px-3.5 py-2 rounded-md border bg-white dark:bg-slate-900/80 text-gray-900 dark:text-slate-100 text-sm placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all duration-150 ${bad ? 'border-red-500/80' : 'border-gray-300/80 dark:border-slate-700/80'}`;
 export const formErrorCls = 'text-xs text-red-500 mt-1';
 export const formCheckCls = 'w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500';
 
@@ -287,7 +345,7 @@ export const tableIconBtnCls = (tone = 'primary') =>
 export function BtnPrimary({ children, className = '', style, ...rest }) {
   return (
     <button
-      className={`${btnBase} bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-5 py-2 shadow-md hover:shadow-orange-500/25 hover:-translate-y-0.5 ${className}`}
+      className={`${btnBase} bg-primary-500 hover:bg-primary-600 text-white px-5 py-2 shadow-sm ${className}`}
       style={style}
       {...rest}
     >
@@ -324,7 +382,7 @@ export function Pagination({ page, totalPages, onChange, total, pageSize, onPage
   if (totalPages <= 1 && !onPageSizeChange) return null;
   const navBtnCls = 'w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent';
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60 text-xs">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60 text-xs">
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-gray-500 dark:text-gray-400">
           Showing page <b className="text-gray-800 dark:text-gray-200">{page}</b> of <b className="text-gray-800 dark:text-gray-200">{totalPages}</b> ({total} total result{total === 1 ? '' : 's'})

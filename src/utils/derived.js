@@ -3,7 +3,7 @@
    propensity score and the segment. Every function here is pure: the
    weights are passed in, never read off a global.
    ===================================================================== */
-import { D, TODAY, yrs, daysTo, annivIn, nextFest, todayInput, hasCoApplicant, topPropertyType } from './core.js';
+import { D, TODAY, yrs, daysTo, annivIn, addD, fmtD, fmtDM, fmtDT, nextFest, todayInput, hasCoApplicant, topPropertyType } from './core.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
 import { DEFAULT_W, SEGLBL } from '../constants/segments.js';
 
@@ -273,6 +273,52 @@ export function followUpsDue(base) {
   return out.sort((a, b) => a.dueAt - b.dueAt);
 }
 
+/* One owner's combined timeline: every system-computed dated reason
+   to reach out (birthdays, anniversaries, loan closure, LTCG/54F
+   windows) plus every still-open manual follow-up note, oldest/most-
+   overdue first — exactly what the "Timeline" tab (MFollowUps.jsx)
+   renders. Pulled out here, rather than left inline in that one
+   component, so CustomerMaster.jsx's own "Next Follow-up" sidebar
+   card (Nexora-inspired — see its own comment) can read the single
+   soonest item without re-deriving the whole trigger list a second
+   time in a second place. `date` is a real Date on every item (not
+   just the relative `days` offset triggerList()-style code already
+   used) specifically so a countdown hook has something concrete to
+   tick against. */
+export function timelineItems(c) {
+  const r = roll(c);
+  const rawTriggers = [];
+  if (c.captured.dob) rawTriggers.push(['Birthday', annivIn(c.dob), fmtDM(c.dob), 'personal']);
+  if (c.captured.anniv && c.spouseDob) rawTriggers.push(['Wedding anniversary', annivIn(c.spouseDob), fmtDM(c.spouseDob), 'personal']);
+  if (c.captured.kid) c.children.forEach((k) => rawTriggers.push([`${k.n}'s birthday`, annivIn(k.dob), fmtDM(k.dob), 'personal']));
+  r.units.forEach((u) => {
+    if (u.bookDate) rawTriggers.push(['Booking anniversary — ' + u.unit, annivIn(u.bookDate), fmtDM(u.bookDate), 'portfolio']);
+    if (u.regDate) rawTriggers.push(['Registry anniversary — ' + u.unit, annivIn(u.regDate), fmtDM(u.regDate), 'portfolio']);
+    if (!u.loan.closed && u.loan.closure) rawTriggers.push(['Loan closure — ' + u.unit, daysTo(u.loan.closure), fmtD(u.loan.closure), 'money']);
+    rawTriggers.push(['LTCG / 54F window — ' + u.unit, daysTo(u.ltcg), fmtD(u.ltcg), 'money']);
+  });
+
+  const all = c.followUps || [];
+  const openNotes = all.filter((f) => !f.done);
+
+  const items = [
+    ...rawTriggers.map(([label, d, dt, kind], i) => ({
+      key: `trig-${i}`, isNote: false, days: d, date: addD(TODAY, Math.round(d)), label, sub: `${dt} · ${kind}`,
+      tone: kind === 'money' ? 'g' : kind === 'portfolio' ? 'o' : '',
+      ack: d === 0 && (label === 'Birthday' || label === 'Wedding anniversary') ? findAck(c, label, todayInput()) : null,
+    })),
+    ...openNotes.map((f) => {
+      const date = new Date(f.dueAt);
+      return {
+        key: f._id, isNote: true, days: (date - new Date()) / 86400000, date, label: f.note,
+        sub: fmtDT(date) + (f.createdBy ? ` · added by ${f.createdBy}` : ''),
+        tone: date <= new Date() ? 'r' : '', f,
+      };
+    }),
+  ];
+  return items.sort((a, b) => a.days - b.days);
+}
+
 /* ---- per-owner document vault ---- */
 /* Per unit, per row: which documents to even ask for depends on that
    unit's own top-level property type (Villa/Flat/Plot each want a
@@ -323,7 +369,8 @@ export function activityFor(c) {
     if (u.exited) a.push({ d: u.exitDate, w: 'System', t: 'Owner status changed to Exited. Unit resold on the open market at approx. ' + (u.exitRate != null ? '₹' + u.exitRate.toLocaleString('en-IN') + '/sq.ft.' : 'an unrecorded rate'), by: 'Legal' });
   });
   if (c.consent.date) a.push({ d: c.consent.date, w: 'Consent', t: 'DPDP consent recorded — marketing ' + (c.consent.marketing ? 'granted' : 'DECLINED'), by: 'CRM' });
-  if (c.nps) a.push({ d: c.npsDate, w: 'Survey', t: 'NPS captured — ' + c.nps + '/10', by: 'CRM' });
+  if (c.nps) a.push({ d: c.npsDate, w: 'Survey', t: 'NPS captured — ' + c.nps + '/10' + (c.npsReason ? ' (' + c.npsReason + ')' : ''), by: 'CRM' });
+
   c.openComplaints.forEach((o) => {
     a.push({ d: o.raised, w: 'Service', t: 'Complaint raised — ' + o.t + '. ' + o.ncr + ' opened.', by: 'CRM' });
     a.push({ d: o.raised, w: 'System', t: 'Contact gate CLOSED — all sales and marketing outbound suppressed', by: 'System' });
@@ -342,3 +389,23 @@ export function activityFor(c) {
   if (c.portalLast) a.push({ d: c.portalLast, w: 'Customer', t: 'Logged into owner portal', by: '—' });
   return a.sort((x, y) => D(y.d) - D(x.d)).slice(0, 16);
 }
+
+/* ---- Portfolio NPS statistics helper ---- */
+export function getNpsStats(base = []) {
+  const withNps = base.filter((c) => c.nps != null && c.nps >= 0 && c.nps <= 10);
+  const total = withNps.length;
+  if (!total) {
+    return { total: 0, promoters: 0, passives: 0, detractors: 0, score: 0, avgRating: 0, promoterPct: 0, passivePct: 0, detractorPct: 0 };
+  }
+  const promoters = withNps.filter((c) => c.nps >= 9).length;
+  const passives = withNps.filter((c) => c.nps >= 7 && c.nps <= 8).length;
+  const detractors = withNps.filter((c) => c.nps <= 6).length;
+  const promoterPct = Math.round((promoters / total) * 100);
+  const passivePct = Math.round((passives / total) * 100);
+  const detractorPct = Math.round((detractors / total) * 100);
+  const score = promoterPct - detractorPct;
+  const avgRating = (withNps.reduce((s, c) => s + c.nps, 0) / total).toFixed(1);
+
+  return { total, promoters, passives, detractors, score, avgRating, promoterPct, passivePct, detractorPct };
+}
+

@@ -16,7 +16,7 @@ export default function MLedger({ c }) {
     const reconciles = Math.abs(u.rate * u.saleable - u.discount - u.consideration) < 1;
     return (
       <Card
-        key={u.unit}
+        key={`${u.unit}-${idx}`}
         title={`${u.unit} — payment ledger`}
         hint={
           <span className="flex items-center gap-2">

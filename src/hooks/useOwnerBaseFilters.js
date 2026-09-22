@@ -16,7 +16,7 @@ import { useSearchParams } from 'react-router-dom';
    instead of the table. An explicit ?seg= in the URL still wins over
    whatever was last saved — that's a fresh instruction from wherever
    the link came from (a segment tile elsewhere), not a stale one. */
-const EMPTY = { seg: '', proj: '', unit: '', ent: '', q: '', status: '', gate: '' };
+const EMPTY = { seg: '', proj: '', unit: '', ent: '', q: '', status: '', gate: '', confMin: '', confMax: '' };
 const STORAGE_KEY = 'ownerbase:filters';
 
 function readSavedFilters() {

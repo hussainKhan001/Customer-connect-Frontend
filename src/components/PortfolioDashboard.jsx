@@ -117,8 +117,8 @@ export default function PortfolioDashboard({ c, r, companyName }) {
 
       <Card title="Units" pad={false} className="mt-4 overflow-hidden">
         <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
-          {r.units.map((u) => (
-            <div key={u.project + u.unit} className="flex items-center justify-between px-4 py-3">
+          {r.units.map((u, idx) => (
+            <div key={`${u.project}-${u.unit}-${idx}`} className="flex items-center justify-between px-4 py-3">
               <div className="min-w-0">
                 <div className="font-semibold text-sm text-gray-900 dark:text-white">{u.unit}</div>
                 <div className="text-[11px] text-gray-400 dark:text-gray-500">{u.project} · {psf(u.valueRate)}</div>

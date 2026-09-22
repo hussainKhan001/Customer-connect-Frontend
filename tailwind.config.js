@@ -32,7 +32,7 @@ export default {
         'fade-in': 'fade-in 0.5s ease-in-out',
         'fade-in-down': 'fade-in-down 0.3s ease-out',
         'fade-in-up': 'fade-in-up 0.3s ease-out',
-        'slide-in-right': 'slideInRight 0.3s ease-out',
+        'slide-in-right': 'slideInRight 0.2s ease-out',
       },
     },
   },

@@ -4,7 +4,7 @@
    separate confirm step. */
 import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Banner } from './Ui.jsx';
+import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Banner, Req } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import { todayInput } from '../utils/core.js';
@@ -36,6 +36,7 @@ export default function ExitModal({ customer, unitIndex, unit, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Mark unit exited"
       subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}
@@ -52,13 +53,13 @@ export default function ExitModal({ customer, unitIndex, unit, onClose }) {
           if it's the owner's last live unit, sets their status to Exited.
         </Banner>
         <div>
-          <label className={formLabelCls}>Exit date</label>
+          <label className={formLabelCls}>Exit date<Req /></label>
           <ThemedDate value={draft.exitDate} onChange={setVal('exitDate')} invalid={!!errors.exitDate} />
           {errors.exitDate && <div className={formErrorCls}>{errors.exitDate}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Sold at (₹/sq.ft.)</label>
-          <input type="number" min="0" value={draft.exitRate} onChange={set('exitRate')} className={formInputCls(!!errors.exitRate)} />
+          <label className={formLabelCls}>Sold at (₹/sq.ft.)<Req /></label>
+          <input type="number" min="0" value={draft.exitRate} onChange={set('exitRate')} aria-required="true" className={formInputCls(!!errors.exitRate)} />
           {errors.exitRate && <div className={formErrorCls}>{errors.exitRate}</div>}
         </div>
       </div>

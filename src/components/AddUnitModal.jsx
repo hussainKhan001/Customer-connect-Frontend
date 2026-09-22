@@ -56,6 +56,7 @@ export default function AddUnitModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Add a unit"
       subtitle={`${customer.name} · ${customer.id}`}
       onClose={onClose}

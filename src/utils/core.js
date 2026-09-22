@@ -18,6 +18,11 @@ export const fmtD = (d) =>
   d ? D(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
 export const fmtDM = (d) =>
   d ? D(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : null;
+/* date + time of day — for the handful of things that actually carry
+   a meaningful time (a follow-up's dueAt), unlike most dates in this
+   app (booking, registry, ...) which are calendar-only. */
+export const fmtDT = (d) =>
+  d ? D(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : null;
 export const addD = (d, n) => { const x = new Date(D(d)); x.setDate(x.getDate() + n); return x; };
 /* "YYYY-MM-DD" for TODAY, using its local date components rather than
    .toISOString() — TODAY is built via new Date(year, month, day), i.e.

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
-import { Card, Chip, Banner, TableWrap, rowActionCls, Avatar, StatsCards, Pagination } from '../components/Ui.jsx';
+import { Search, ClipboardList } from 'lucide-react';
+import { Card, Chip, Banner, TableWrap, rowActionCls, Avatar, StatsCards, Pagination, EmptyState } from '../components/Ui.jsx';
 import ThemedSelect from '../components/theme/ThemedSelect.jsx';
 import { useApp } from '../context/AppContext.jsx';
 import { usePagination } from '../hooks/usePagination.js';
@@ -163,8 +163,17 @@ export default function IncompleteRecords() {
                 );
               })}
               {!rows.length && (
-                <tr><td className={td} colSpan={7}>
-                  {incompleteRecords.length ? 'No records match the selected filters.' : 'Nothing held — every record has a real PAN and confirmed financials.'}
+                <tr><td colSpan={7}>
+                  <EmptyState
+                    icon={ClipboardList}
+                    title={incompleteRecords.length ? 'No records match the selected filters.' : 'Nothing held — every record has a real PAN and confirmed financials.'}
+                    hint={incompleteRecords.length ? 'Try a different project, status or missing-field filter.' : undefined}
+                    action={incompleteRecords.length ? (
+                      <button type="button" onClick={() => setFilters({ q: '', proj: '', status: '', missing: '' })} className="text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300">
+                        Clear filters
+                      </button>
+                    ) : undefined}
+                  />
                 </td></tr>
               )}
             </tbody>

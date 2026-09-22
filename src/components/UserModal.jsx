@@ -44,6 +44,7 @@ export default function UserModal({ roles, onClose, onCreated }) {
 
   return (
     <Modal
+      drawer
       title="Add user"
       subtitle="Creates a new sign-in — access is decided entirely by role"
       onClose={onClose}

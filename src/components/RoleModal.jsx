@@ -46,6 +46,7 @@ export default function RoleModal({ role, onClose, onSaved }) {
 
   return (
     <Modal
+      drawer
       title={editing ? `Rename ${role.name}` : 'New role'}
       subtitle={editing
         ? 'Every account on this role moves with the name'

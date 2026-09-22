@@ -4,7 +4,7 @@
    `notedOn` reopens contact for that unit if it was the only blocker. */
 import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
+import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import { todayInput } from '../utils/core.js';
@@ -55,6 +55,7 @@ export default function ValuationModal({ customer, unitIndex, unit, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Edit valuation note"
       subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}
@@ -67,22 +68,22 @@ export default function ValuationModal({ customer, unitIndex, unit, onClose }) {
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={formLabelCls}>Our ask (₹/sq.ft.)</label>
-          <input type="number" min="0" value={draft.ask} onChange={setRate('ask')} className={formInputCls(!!errors.ask)} />
+          <label className={formLabelCls}>Our ask (₹/sq.ft.)<Req /></label>
+          <input type="number" min="0" value={draft.ask} onChange={setRate('ask')} aria-required="true" className={formInputCls(!!errors.ask)} />
           {errors.ask && <div className={formErrorCls}>{errors.ask}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Recent resale (₹/sq.ft.)</label>
-          <input type="number" min="0" value={draft.resale} onChange={setRate('resale')} className={formInputCls(!!errors.resale)} />
+          <label className={formLabelCls}>Recent resale (₹/sq.ft.)<Req /></label>
+          <input type="number" min="0" value={draft.resale} onChange={setRate('resale')} aria-required="true" className={formInputCls(!!errors.resale)} />
           {errors.resale && <div className={formErrorCls}>{errors.resale}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Circle rate (₹/sq.ft.)</label>
-          <input type="number" min="0" value={draft.circle} onChange={setRate('circle')} className={formInputCls(!!errors.circle)} />
+          <label className={formLabelCls}>Circle rate (₹/sq.ft.)<Req /></label>
+          <input type="number" min="0" value={draft.circle} onChange={setRate('circle')} aria-required="true" className={formInputCls(!!errors.circle)} />
           {errors.circle && <div className={formErrorCls}>{errors.circle}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Note dated</label>
+          <label className={formLabelCls}>Note dated<Req /></label>
           <ThemedDate value={draft.notedOn} onChange={setVal('notedOn')} invalid={!!errors.notedOn} />
           {errors.notedOn && <div className={formErrorCls}>{errors.notedOn}</div>}
           <div className="text-[10.5px] text-gray-400 dark:text-gray-500 mt-1">
@@ -90,13 +91,13 @@ export default function ValuationModal({ customer, unitIndex, unit, onClose }) {
           </div>
         </div>
         <div className="sm:col-span-2">
-          <label className={formLabelCls}>Basis</label>
-          <textarea value={draft.basis} onChange={set('basis')} rows={2} className={formInputCls(!!errors.basis)} placeholder="e.g. 6 registered resales, Towers A–C, Apr–Jun 2026" />
+          <label className={formLabelCls}>Basis<Req /></label>
+          <textarea value={draft.basis} onChange={set('basis')} rows={2} aria-required="true" className={formInputCls(!!errors.basis)} placeholder="e.g. 6 registered resales, Towers A–C, Apr–Jun 2026" />
           {errors.basis && <div className={formErrorCls}>{errors.basis}</div>}
         </div>
         <div className="sm:col-span-2">
-          <label className={formLabelCls}>Signed by</label>
-          <input value={draft.by} onChange={set('by')} className={formInputCls(!!errors.by)} placeholder="e.g. Finance — Head of Accounts" />
+          <label className={formLabelCls}>Signed by<Req /></label>
+          <input value={draft.by} onChange={set('by')} aria-required="true" className={formInputCls(!!errors.by)} placeholder="e.g. Finance — Head of Accounts" />
           {errors.by && <div className={formErrorCls}>{errors.by}</div>}
         </div>
       </div>

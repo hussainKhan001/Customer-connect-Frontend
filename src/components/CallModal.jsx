@@ -4,7 +4,7 @@
    never touches the Contact Gate. */
 import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
+import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
@@ -39,6 +39,7 @@ export default function CallModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Log a call"
       subtitle={`${displayName(customer)} · ${customer.id}`}
       onClose={onClose}
@@ -51,7 +52,7 @@ export default function CallModal({ customer, onClose }) {
     >
       <div className="space-y-4">
         <div>
-          <label className={formLabelCls}>Outcome</label>
+          <label className={formLabelCls}>Outcome<Req /></label>
           <ThemedSelect
             value={draft.outcomeOther ? 'Other' : draft.outcome}
             onChange={(v) => setDraft((d) => (v === 'Other'
@@ -71,7 +72,7 @@ export default function CallModal({ customer, onClose }) {
           {errors.outcome && <div className={formErrorCls}>{errors.outcome}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Date</label>
+          <label className={formLabelCls}>Date<Req /></label>
           <ThemedDate value={draft.date} onChange={setVal('date')} invalid={!!errors.date} />
           {errors.date && <div className={formErrorCls}>{errors.date}</div>}
         </div>

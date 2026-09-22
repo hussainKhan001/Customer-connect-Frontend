@@ -6,7 +6,7 @@ import { Card, Chip, Kpi, Kpis, Banner, ScoreBar, Timeline, Meter, healthMeterCl
 import ValueByProject from '../components/ValueByProject.jsx';
 import { cr, inr, annivIn, daysTo, nextFest } from '../utils/core.js';
 import { VAL_STALE_DAYS } from '../constants/seedData.js';
-import { GATE_ORDER, roll, triggerList } from '../utils/derived.js';
+import { GATE_ORDER, roll, triggerList, getNpsStats } from '../utils/derived.js';
 import { SEGLBL, SEGMETA } from '../constants/segments.js';
 import { exceptions } from '../utils/intake.js';
 
@@ -59,6 +59,7 @@ export default function CommandCentre() {
      so summing it keeps those records at 0 gain instead. */
   const gain = live.reduce((s, c) => s + c._gain, 0);
   const gainPct = inv ? (gain / inv) * 100 : 0;
+  const npsStats = getNpsStats(base);
 
   const segGain = (k) => base.filter((c) => c._seg === k).reduce((s, c) => s + c._gain, 0);
   const cnt = (k) => base.filter((c) => c._seg === k).length;
@@ -100,6 +101,45 @@ export default function CommandCentre() {
         <Kpi label="Contact-blocked" value={blk.length} tone="r" icon={ShieldAlert}
              sub={`${((blk.length / tot) * 100).toFixed(0)}% of the base · ₹${cr(blockedGain).toFixed(1)} Cr of gain locked`} />
       </Kpis>
+
+      {/* Portfolio NPS Analytics Bar */}
+      <div className="mb-3.5 p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm text-white ${
+            npsStats.score >= 30 ? 'bg-emerald-600' : npsStats.score >= 0 ? 'bg-amber-500' : 'bg-red-600'
+          }`}>
+            {npsStats.score > 0 ? `+${npsStats.score}` : npsStats.score}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-gray-900 dark:text-white">Net Promoter Score (NPS)</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">({npsStats.total} responses · avg {npsStats.avgRating}/10)</span>
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
+              <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                🟢 {npsStats.promoters} Promoters ({npsStats.promoterPct}%)
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
+                🟡 {npsStats.passives} Passives ({npsStats.passivePct}%)
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-red-600 dark:text-red-400">
+                🔴 {npsStats.detractors} Detractors ({npsStats.detractorPct}%)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full md:w-64">
+          <div className="h-2.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex">
+            <div style={{ width: `${npsStats.promoterPct}%` }} className="bg-emerald-500 h-full" title={`Promoters: ${npsStats.promoterPct}%`} />
+            <div style={{ width: `${npsStats.passivePct}%` }} className="bg-amber-400 h-full" title={`Passives: ${npsStats.passivePct}%`} />
+            <div style={{ width: `${npsStats.detractorPct}%` }} className="bg-red-500 h-full" title={`Detractors: ${npsStats.detractorPct}%`} />
+          </div>
+          <div className="text-[10px] text-gray-400 dark:text-gray-500 text-right mt-1">
+            % Promoters − % Detractors = {npsStats.score} NPS
+          </div>
+        </div>
+      </div>
 
       <StatsCards
         className="mb-3.5"

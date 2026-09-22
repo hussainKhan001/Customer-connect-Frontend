@@ -40,6 +40,7 @@ export default function CompleteRecordModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Complete this record"
       subtitle={`${customer.name} · ${u.unit}, ${u.project}`}
       onClose={onClose}

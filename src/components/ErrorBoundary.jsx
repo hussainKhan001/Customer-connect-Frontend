@@ -71,8 +71,8 @@ export default class ErrorBoundary extends Component {
               <div className="p-6 sm:p-8 text-center space-y-6">
                 {/* Error Icon Badge */}
                 <div className="relative inline-flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-2xl bg-red-500/20 dark:bg-red-500/30 animate-ping opacity-25" />
-                  <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/10 to-rose-500/20 dark:from-red-950/50 dark:to-rose-900/30 border border-red-200 dark:border-red-800/50 flex items-center justify-center text-red-600 dark:text-red-400 shadow-inner">
+                  <div className="absolute inset-0 rounded-lg bg-red-500/20 dark:bg-red-500/30 animate-ping opacity-25" />
+                  <div className="relative w-16 h-16 rounded-lg bg-gradient-to-br from-red-500/10 to-rose-500/20 dark:from-red-950/50 dark:to-rose-900/30 border border-red-200 dark:border-red-800/50 flex items-center justify-center text-red-600 dark:text-red-400 shadow-inner">
                     <ShieldAlert className="w-8 h-8" />
                   </div>
                 </div>
@@ -92,7 +92,7 @@ export default class ErrorBoundary extends Component {
                 </div>
 
                 {/* Concise Error Box */}
-                <div className="p-3.5 rounded-2xl bg-red-50/60 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 text-left">
+                <div className="p-3.5 rounded-lg bg-red-50/60 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 text-left">
                   <div className="flex items-start gap-2.5">
                     <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                     <div className="text-xs font-mono font-medium text-red-800 dark:text-red-300 break-all leading-snug">
@@ -106,7 +106,7 @@ export default class ErrorBoundary extends Component {
                   <button
                     type="button"
                     onClick={this.handleReload}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-semibold shadow-md shadow-red-500/20 hover:shadow-red-500/30 transition-all active:scale-[0.98]"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-semibold shadow-md shadow-red-500/20 hover:shadow-red-500/30 transition-all active:scale-[0.98]"
                   >
                     <RefreshCw className="w-4 h-4" />
                     Reload Page
@@ -115,7 +115,7 @@ export default class ErrorBoundary extends Component {
                   <a
                     href="/command"
                     onClick={this.handleRetry}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700/80 text-xs font-semibold transition-all active:scale-[0.98]"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700/80 text-xs font-semibold transition-all active:scale-[0.98]"
                   >
                     <Home className="w-4 h-4" />
                     Dashboard
@@ -157,7 +157,7 @@ export default class ErrorBoundary extends Component {
                         </button>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-gray-950 text-gray-300 font-mono text-[11px] overflow-x-auto max-h-48 custom-scrollbar border border-gray-800 leading-relaxed select-all">
+                      <div className="p-3.5 rounded-lg bg-gray-950 text-gray-300 font-mono text-[11px] overflow-x-auto max-h-48 custom-scrollbar border border-gray-800 leading-relaxed select-all">
                         <p className="text-red-400 font-semibold mb-1">
                           {error?.name || 'Error'}: {error?.message}
                         </p>

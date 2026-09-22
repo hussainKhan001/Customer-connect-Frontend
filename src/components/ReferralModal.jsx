@@ -4,7 +4,7 @@
    (ReferralTree.jsx's `.startsWith('Open'|'Booked')`). */
 import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
+import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
@@ -41,6 +41,7 @@ export default function ReferralModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Add referral"
       subtitle={`${displayName(customer)} · ${customer.id}`}
       onClose={onClose}
@@ -53,12 +54,12 @@ export default function ReferralModal({ customer, onClose }) {
     >
       <div className="space-y-4">
         <div>
-          <label className={formLabelCls}>Referred person's name</label>
+          <label className={formLabelCls}>Referred person's name<Req /></label>
           <input value={draft.n} onChange={set('n')} className={formInputCls(!!errors.n)} />
           {errors.n && <div className={formErrorCls}>{errors.n}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Date</label>
+          <label className={formLabelCls}>Date<Req /></label>
           <ThemedDate value={draft.date} onChange={setVal('date')} invalid={!!errors.date} />
           {errors.date && <div className={formErrorCls}>{errors.date}</div>}
         </div>

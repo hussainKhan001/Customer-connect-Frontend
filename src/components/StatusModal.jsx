@@ -34,6 +34,7 @@ export default function StatusModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Change owner status"
       subtitle={`${displayName(customer)} · ${customer.id}`}
       onClose={onClose}

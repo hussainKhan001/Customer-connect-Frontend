@@ -7,18 +7,20 @@ import UnitFinancialsModal from '../components/UnitFinancialsModal.jsx';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { useOwnerBaseFilters } from '../hooks/useOwnerBaseFilters.js';
 import { usePagination } from '../hooks/usePagination.js';
-import { Card, Chip, ScoreBar, TableWrap, confColor, Avatar, tableIconBtnCls, StatsCards, Pagination } from '../components/Ui.jsx';
+import { Card, Chip, ScoreBar, TableWrap, confColor, Avatar, tableIconBtnCls, StatsCards, Pagination, EmptyState, PermissionGate } from '../components/Ui.jsx';
 import { cr, fmtD, inr, psf } from '../utils/core.js';
 import { segDisplay } from '../utils/derived.js';
 import { SEGLBL, STATUSLBL } from '../constants/segments.js';
 import { toast, CONFIRM_COLOR } from '../utils/toast.js';
 import ThemedSelect from '../components/theme/ThemedSelect.jsx';
+import RangeSliderFilter from '../components/theme/RangeSliderFilter.jsx';
 
 const COLS = [
   ['name', 'Owner'], ['_project', 'Project / unit'], ['_book', 'Booked', 1], ['_held', 'Held', 1],
   ['_rate', 'Rate paid', 1], ['_vrate', 'Value today', 1], ['_gain', 'Unrealised gain', 1],
-  ['_paidPct', 'Paid', 1], ['_conf', 'Conf.', 1], ['_total', 'Score', 1], ['_seg', 'Segment'],
+  ['_paidPct', 'Paid', 1], ['_conf', 'Conf.', 1], ['nps', 'NPS', 1], ['_total', 'Score', 1], ['_seg', 'Segment'],
 ];
+
 
 const PAGE_SIZE = 50;
 
@@ -48,9 +50,9 @@ const natCmp = (a, b) =>
 const unitKey = (u) => JSON.stringify([u.project || '', u.unit || '']);
 
 const th = (right) =>
-  `sticky top-0 z-10 text-left text-[8.5px] sm:text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-2 sm:px-3 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 ${right ? ' text-right' : ''}`;
+  `sticky top-0 z-10 text-left text-[8.5px] sm:text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-3 sm:px-4 py-3.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 whitespace-nowrap cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 ${right ? ' text-right' : ''}`;
 
-const tdBase = 'px-2 sm:px-3 py-2 border-b border-gray-100 dark:border-gray-700/60 text-xs sm:text-sm whitespace-nowrap';
+const tdBase = 'px-3 sm:px-4 py-3.5 border-b border-gray-100 dark:border-gray-700/60 text-xs sm:text-sm whitespace-nowrap';
 const tdTop = `${tdBase} align-top`;
 const tdMidR = `${tdBase} align-middle text-right tabular-nums`;
 
@@ -60,7 +62,7 @@ export default function OwnerBase() {
   const { projects: PROJECTS, entities: ENTITIES } = masterData;
   const ENT_OPTS = useMemo(() => [{ value: '', label: 'All entities' }, ...ENTITIES.map((e) => ({ value: e, label: e }))], [ENTITIES]);
   const PROJ_OPTS = useMemo(() => [{ value: '', label: 'All projects' }, ...PROJECTS.map((p) => ({ value: p.name, label: p.name }))], [PROJECTS]);
-  const { filters, setFilters, sort, toggleSort } = useOwnerBaseFilters();
+  const { filters, setFilters, sort, toggleSort, clearFilters } = useOwnerBaseFilters();
   const [editing, setEditing] = useState(null);
   const [editingUnit, setEditingUnit] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -103,7 +105,7 @@ export default function OwnerBase() {
     return (x - y) * sort.dir;
   };
 
-  const orderKey = JSON.stringify([filters.seg, filters.proj, filters.unit, filters.ent, filters.status, filters.q, sort.k, sort.dir]);
+  const orderKey = JSON.stringify([filters.seg, filters.proj, filters.unit, filters.ent, filters.status, filters.q, filters.confMin, filters.confMax, sort.k, sort.dir]);
 
   const rows = useMemo(() => {
     const f = filters;
@@ -113,6 +115,8 @@ export default function OwnerBase() {
       (!f.unit || c.units.some((u) => unitKey(u) === f.unit)) &&
       (!f.ent || c.units.some((u) => u.entity === f.ent)) &&
       (!f.status || c.status === f.status) &&
+      (f.confMin === '' || c._conf >= Number(f.confMin)) &&
+      (f.confMax === '' || c._conf <= Number(f.confMax)) &&
       (!f.q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(f.q.toLowerCase())));
 
     if (orderKeyRef.current !== orderKey) {
@@ -170,8 +174,10 @@ export default function OwnerBase() {
       (!f.seg || c._seg === f.seg) &&
       (!f.ent || c.units.some((u) => u.entity === f.ent)) &&
       (!f.status || c.status === f.status) &&
+      (f.confMin === '' || c._conf >= Number(f.confMin)) &&
+      (f.confMax === '' || c._conf <= Number(f.confMax)) &&
       (!f.q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(f.q.toLowerCase())));
-  }, [base, filters.seg, filters.ent, filters.status, filters.q]);
+  }, [base, filters.seg, filters.ent, filters.status, filters.q, filters.confMin, filters.confMax]);
 
   const PROJECT_STATS = useMemo(() => {
     const map = new Map(PROJECTS.map((p) => [p.name, { name: p.name, count: 0, gain: 0, blocked: 0 }]));
@@ -217,7 +223,8 @@ export default function OwnerBase() {
   /* how many filters (besides free-text search) are actually narrowing
      the view right now — just enough to know whether "Clear filters"
      has anything to do. */
-  const activeCount = ['seg', 'status', 'ent', 'proj', 'unit'].filter((k) => filters[k]).length;
+  const activeCount = ['seg', 'status', 'ent', 'proj', 'unit'].filter((k) => filters[k]).length +
+    (filters.confMin !== '' || filters.confMax !== '' ? 1 : 0);
 
   /* row-level actions live inside a clickable row, so both stop the
      click from also opening the customer master behind the dialog. */
@@ -276,37 +283,34 @@ export default function OwnerBase() {
       />
 
 
-      <div className="p-2.5 sm:p-3 rounded-2xl bg-white/90 dark:bg-gray-900/90 border border-gray-200/80 dark:border-gray-800/80 shadow-2xs mb-4">
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-4">
           <div className="relative w-full sm:flex-1 sm:min-w-0">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by name, ID, unit or city…"
               value={filters.q}
               onChange={set('q')}
-              className="w-full pl-9 pr-3 py-2 h-9 border rounded-full text-xs bg-gray-50/80 dark:bg-gray-800/80 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700/80 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-150"
+              className="w-full pl-10 pr-4 py-2 h-11 border rounded-md text-sm bg-gray-50/80 dark:bg-gray-800/80 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700/80 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-150"
             />
           </div>
 
-          <ThemedSelect pill className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.proj}
+          <ThemedSelect size="lg" className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.proj}
             onChange={(v) => setFilters((f) => ({ ...f, proj: v, unit: '' }))}
             options={PROJ_OPTS} placeholder="All projects" />
-          <ThemedSelect pill className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.status} onChange={setSel('status')} options={STATUS_OPTS} placeholder="All status" />
-          <ThemedSelect pill className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.seg} onChange={setSel('seg')} options={SEG_OPTS} placeholder="All segments" />
-          <ThemedSelect pill className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.ent} onChange={setSel('ent')} options={ENT_OPTS} placeholder="All entities" />
-          <ThemedSelect pill className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.unit} onChange={setSel('unit')} options={UNIT_OPTS} placeholder="All units" />
+          <ThemedSelect size="lg" className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.status} onChange={setSel('status')} options={STATUS_OPTS} placeholder="All status" />
+          <ThemedSelect size="lg" className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.seg} onChange={setSel('seg')} options={SEG_OPTS} placeholder="All segments" />
+          <ThemedSelect size="lg" className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.ent} onChange={setSel('ent')} options={ENT_OPTS} placeholder="All entities" />
+          <ThemedSelect size="lg" className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0" value={filters.unit} onChange={setSel('unit')} options={UNIT_OPTS} placeholder="All units" />
 
-          {(activeCount > 0 || !!filters.q) && (
-            <button
-              type="button"
-              onClick={() => setFilters({ seg: '', status: '', ent: '', proj: '', unit: '', q: '' })}
-              className="w-full sm:w-auto px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 flex-shrink-0"
-            >
-              Clear ({activeCount + (filters.q ? 1 : 0)})
-            </button>
-          )}
-        </div>
+          <RangeSliderFilter
+            className="w-[calc(50%-4px)] sm:flex-1 sm:min-w-0"
+            label="Data confidence"
+            unit="%"
+            min={filters.confMin}
+            max={filters.confMax}
+            onChange={(confMin, confMax) => setFilters((f) => ({ ...f, confMin, confMax }))}
+          />
       </div>
 
 
@@ -331,8 +335,17 @@ export default function OwnerBase() {
             <tbody>
               {!rows.length && (
                 <tr>
-                  <td className={`${tdBase} text-center text-gray-400 dark:text-gray-500 py-10`} colSpan={COLS.length + 1}>
-                    {activeCount || filters.q ? 'No owners match the selected criteria.' : 'No owners yet.'}
+                  <td colSpan={COLS.length + 1}>
+                    <EmptyState
+                      icon={Users}
+                      title={activeCount || filters.q ? 'No owners match the selected criteria.' : 'No owners yet.'}
+                      hint={activeCount || filters.q ? 'Try widening a filter or clearing the search box.' : undefined}
+                      action={(activeCount || filters.q) ? (
+                        <button type="button" onClick={clearFilters} className="text-xs font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300">
+                          Clear filters
+                        </button>
+                      ) : undefined}
+                    />
                   </td>
                 </tr>
               )}
@@ -381,6 +394,21 @@ export default function OwnerBase() {
                     <td className={`${tdMidR} font-bold text-green-600 dark:text-green-400`}>{inr(c._gain)}</td>
                     <td className={tdMidR}>{c._paidPct.toFixed(0)}%</td>
                     <td className={`${tdMidR} font-bold ${confColor(c._conf)}`}>{c._conf}%</td>
+                    <td className={`${tdMidR} font-semibold`}>
+                      {c.nps != null ? (
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] ${
+                          c.nps >= 9 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                            : c.nps >= 7 
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' 
+                            : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'
+                        }`}>
+                          {c.nps}/10
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className={`${tdBase} align-middle text-right`}>
                       {c._blocked ? <span className="text-[10px] text-gray-400 dark:text-gray-500">—</span> : <ScoreBar n={c._total} />}
                     </td>
@@ -394,14 +422,16 @@ export default function OwnerBase() {
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          className={tableIconBtnCls('red')}
-                          title={`Delete ${c.name}`}
-                          disabled={deletingId === c.id}
-                          onClick={(e) => deleteRow(e, c)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <PermissionGate capability="Owner status and transfer state" mode="disable">
+                          <button
+                            className={tableIconBtnCls('red')}
+                            title={`Delete ${c.name}`}
+                            disabled={deletingId === c.id}
+                            onClick={(e) => deleteRow(e, c)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </PermissionGate>
                       </div>
                     </td>
                   </tr>

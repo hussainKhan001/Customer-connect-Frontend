@@ -7,28 +7,27 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #F8FAFC;
-  --bg-secondary: #FFFFFF;
-  --bg-card: #FFFFFF;
-  --border: #E2E8F0;
-  --text-primary: #0F172A;
-  --text-secondary: #64748B;
-  --accent: #F97316;
+  --nx-bg: #F8FAFC;
+  --nx-surface: #FFFFFF;
+  --nx-surface-muted: #FFFFFF;
+  --nx-border: #E2E8F0;
+  --nx-text: #0F172A;
+  --nx-text-muted: #64748B;
 
-  --theme-primary: #f97316;
-  --theme-primary-light: #fb923c;
-  --theme-primary-dark: #ea580c;
+  --nx-primary: #f97316;
+  --nx-primary-light: #fb923c;
+  --nx-primary-hover: #ea580c;
+  --nx-primary-soft: #fff7ed;
 }
 
 [data-theme="dark"],
 .dark {
-  --bg-primary: #0B0F19;
-  --bg-secondary: #111827;
-  --bg-card: #131C2E;
-  --border: #1E293B;
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --accent: #F97316;
+  --nx-bg: #0B0F19;
+  --nx-surface: #111827;
+  --nx-surface-muted: #131C2E;
+  --nx-border: #1E293B;
+  --nx-text: #F8FAFC;
+  --nx-text-muted: #94A3B8;
 }
 
 @layer base {
@@ -40,12 +39,12 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    background-color: var(--nx-bg);
+    color: var(--nx-text);
   }
   body {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    background-color: var(--nx-bg);
+    color: var(--nx-text);
   }
 
   input[type='number']::-webkit-outer-spin-button,
@@ -59,28 +58,29 @@
 }
 
 @layer utilities {
-  .theme-bg { background-color: var(--theme-primary); }
-  .theme-bg-hover:hover { background-color: var(--theme-primary-dark); }
-  .theme-bg-dark { background-color: var(--theme-primary-dark); }
-  .theme-text { color: var(--theme-primary); }
-  .theme-text-light { color: var(--theme-primary-light); }
-  .theme-border { border-color: var(--theme-primary); }
-  .theme-ring { --tw-ring-color: var(--theme-primary); }
-  .theme-nav-hover:hover { color: var(--theme-primary); }
-  .theme-gradient { background: linear-gradient(135deg, var(--theme-primary), var(--theme-primary-dark)); }
+  .theme-bg { background-color: var(--nx-primary); }
+  .theme-bg-hover:hover { background-color: var(--nx-primary-hover); }
+  .theme-bg-dark { background-color: var(--nx-primary-hover); }
+  .theme-text { color: var(--nx-primary); }
+  .theme-text-light { color: var(--nx-primary-light); }
+  .theme-border { border-color: var(--nx-primary); }
+  .theme-ring { --tw-ring-color: var(--nx-primary); }
+  .theme-nav-hover:hover { color: var(--nx-primary); }
+  .theme-gradient { background: linear-gradient(135deg, var(--nx-primary), var(--nx-primary-hover)); }
 
-  /* Modern Glassmorphism & Card Design System */
+  /* Nexora-flat surfaces — restrained shadows, no blur, calm/compact
+     rather than the "marketing site" glassmorphism this used to be. */
   .glass-header {
-    @apply bg-white/80 dark:bg-[#0B0F19]/80 backdrop-blur-xl border-b border-gray-200/80 dark:border-slate-800/80 shadow-xs;
+    @apply bg-[color:var(--nx-surface)] border-b border-[color:var(--nx-border)] shadow-xs;
   }
   .glass-panel {
-    @apply bg-white/90 dark:bg-[#131C2E]/90 backdrop-blur-xl border border-gray-200/70 dark:border-slate-800/80 shadow-sm;
+    @apply bg-[color:var(--nx-surface)] border border-[color:var(--nx-border)] shadow-sm;
   }
   .glass-card {
-    @apply bg-white/95 dark:bg-[#131C2E]/90 backdrop-blur-xl border border-gray-200/70 dark:border-slate-800/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_25px_-5px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_10px_35px_-5px_rgba(0,0,0,0.5)] dark:hover:border-slate-700/80 transition-all duration-300 rounded-2xl;
+    @apply bg-[color:var(--nx-surface)] border border-[color:var(--nx-border)] shadow-sm rounded-xl transition-shadow duration-200;
   }
   .pro-card {
-    @apply bg-white/95 dark:bg-[#131C2E]/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800/90 rounded-2xl shadow-xs hover:shadow-md transition-all duration-200;
+    @apply bg-[color:var(--nx-surface)] border border-[color:var(--nx-border)] rounded-xl shadow-xs hover:shadow-sm transition-shadow duration-200;
   }
 
   /* Custom scrollbars applied only to designated scroll areas */
@@ -90,17 +90,48 @@
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 9999px; }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--theme-primary); }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--nx-primary); }
 
   .custom-horizontal-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(148, 163, 184, 0.3) transparent; }
   .custom-horizontal-scrollbar::-webkit-scrollbar { height: 5px; }
   .custom-horizontal-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 9999px; }
   .dark .custom-horizontal-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.5); }
-  .custom-horizontal-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--theme-primary); }
+  .custom-horizontal-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--nx-primary); }
 
   .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Dual-thumb range slider — two native <input type="range"> stacked on
+     the same track (RangeSliderFilter.jsx). The track itself must stay
+     click-through (pointer-events: none on the input) so only the
+     circular thumb below actually grabs the drag, otherwise whichever
+     input sits on top of the DOM stack would eat every click on the
+     whole track, not just its own thumb. */
+  .range-thumb { pointer-events: none; }
+  .range-thumb::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 9999px;
+    background: var(--nx-primary);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .dark .range-thumb::-webkit-slider-thumb { border-color: #131C2E; }
+  .range-thumb::-moz-range-thumb {
+    pointer-events: auto;
+    width: 16px; height: 16px;
+    border-radius: 9999px;
+    background: var(--nx-primary);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .dark .range-thumb::-moz-range-thumb { border-color: #131C2E; }
+  .range-thumb::-webkit-slider-runnable-track { background: transparent; }
+  .range-thumb::-moz-range-track { background: transparent; }
 }
 
 @media (prefers-reduced-motion: reduce) {

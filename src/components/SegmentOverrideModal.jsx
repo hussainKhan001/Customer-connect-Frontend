@@ -41,6 +41,7 @@ export default function SegmentOverrideModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Override segment"
       subtitle={`${displayName(customer)} · ${customer.id}`}
       onClose={onClose}

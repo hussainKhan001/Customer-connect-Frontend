@@ -29,6 +29,7 @@ export default function OccupationEditorModal({ occupation, onSave, onClose, sav
 
   return (
     <Modal
+      drawer
       title={isNew ? 'Add occupation' : 'Edit occupation'}
       subtitle={isNew ? undefined : occupation.k}
       onClose={onClose}

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
 import Swal from 'sweetalert2';
-import { Card, Chip, Banner, Row, KV, Timeline, TableWrap, rowActionCls, formLabelCls, formInputCls } from '../../components/Ui.jsx';
+import { Card, Chip, Banner, Row, KV, Timeline, TableWrap, rowActionCls, formLabelCls, formInputCls, Req } from '../../components/Ui.jsx';
 import { useApp } from '../../context/AppContext.jsx';
 import ThemedDate from '../../components/theme/ThemedDate.jsx';
 import { fmtD, todayInput } from '../../utils/core.js';
@@ -21,19 +22,33 @@ export default function MRelationship({ c }) {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [nps, setNps] = useState(c.nps ?? '');
   const [npsDate, setNpsDate] = useState(c.npsDate ? String(c.npsDate).slice(0, 10) : todayInput());
+  const [npsReason, setNpsReason] = useState(c.npsReason ?? '');
   const [savingNps, setSavingNps] = useState(false);
 
+  // Sync local input state if customer prop updates from server
+  useEffect(() => {
+    if (c.nps != null) setNps(c.nps);
+    if (c.npsDate) setNpsDate(String(c.npsDate).slice(0, 10));
+    if (c.npsReason != null) setNpsReason(c.npsReason);
+  }, [c.nps, c.npsDate, c.npsReason]);
+
   const saveNps = async () => {
+    if (nps === '' || nps === null) {
+      toast.error('Choose a score', 'Click a number from 0 to 10 first.');
+      return;
+    }
     setSavingNps(true);
     try {
-      await mutateCustomer(`/api/customers/${c.id}/nps`, { nps, npsDate });
+      await mutateCustomer(`/api/customers/${c.id}/nps`, { nps: Number(nps), npsDate, npsReason });
       toast.success('NPS recorded', `${nps}/10 for ${c.name}.`);
-    } catch {
-      toast.error('Could not save', 'Enter a whole number from 0 to 10.');
+    } catch (err) {
+      toast.error('Could not save', err.message || 'Enter a whole number from 0 to 10.');
     } finally {
       setSavingNps(false);
     }
   };
+
+
 
   const closeComplaint = async (o) => {
     const result = await Swal.fire({
@@ -117,23 +132,115 @@ export default function MRelationship({ c }) {
           <button className={rowActionCls('red')} onClick={() => setComplaintOpen(true)}>Log complaint</button>
         }
       >
-        <div className="flex items-end gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700/60">
-          <div className="flex-1">
-            <label className={formLabelCls}>NPS</label>
-            <input type="number" min="0" max="10" value={nps} onChange={(e) => setNps(e.target.value)} className={formInputCls(false)} />
+        <div className="mb-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
+          <div className="flex items-center justify-between mb-2">
+            <label className={formLabelCls}>Net Promoter Score (NPS 0-10)</label>
+            {nps !== '' && nps !== null && (
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                Number(nps) >= 9 
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                  : Number(nps) >= 7 
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' 
+                  : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'
+              }`}>
+                {Number(nps) >= 9 ? '🟢 Promoter (Super Fan)' : Number(nps) >= 7 ? '🟡 Passive (Neutral)' : '🔴 Detractor (Unhappy)'} 
+                <span className="opacity-75 font-normal ml-1">(+{Math.round((Number(nps)/10)*30)} pts Trust)</span>
+              </span>
+            )}
           </div>
-          <div className="flex-1">
-            <label className={formLabelCls}>Date</label>
-            <ThemedDate value={npsDate} onChange={setNpsDate} />
+          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((val) => {
+              const active = Number(nps) === val && nps !== '';
+              const isPromoter = val >= 9;
+              const isPassive = val >= 7 && val <= 8;
+              let cls = 'w-8 h-8 rounded-lg text-xs font-bold transition-all flex items-center justify-center border ';
+              if (active) {
+                cls += isPromoter 
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-600/30 scale-105' 
+                  : isPassive 
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-500/30 scale-105' 
+                  : 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-600/30 scale-105';
+              } else {
+                cls += isPromoter
+                  ? 'border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+                  : isPassive
+                  ? 'border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                  : 'border-red-200 dark:border-red-800/40 text-red-700 dark:text-red-400 bg-red-50/50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/40';
+              }
+              return (
+                <button key={val} type="button" onClick={() => setNps(val)} className={cls}>
+                  {val}
+                </button>
+              );
+            })}
           </div>
-          <button className={rowActionCls('primary')} disabled={savingNps} onClick={saveNps}>
-            {savingNps ? 'Saving…' : 'Record NPS'}
-          </button>
+
+          <div className="mb-3">
+            <label className={formLabelCls}>Reason / Feedback Comment</label>
+            <input
+              type="text"
+              placeholder="e.g. Timely possession & great quality / Water seepage issue"
+              value={npsReason}
+              onChange={(e) => setNpsReason(e.target.value)}
+              className={formInputCls(false)}
+            />
+            {nps !== '' && nps !== null && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {(Number(nps) >= 9 ? [
+                  'Timely possession & superior construction quality',
+                  'Smooth loan processing & helpful CRM team',
+                  'Transparent dealing & excellent capital appreciation',
+                ] : Number(nps) >= 7 ? [
+                  'Decent construction quality, minor possession delay',
+                  'Good property location, but parking availability is tight',
+                  'Satisfactory overall experience, room for maintenance improvement',
+                ] : [
+                  'Water seepage & construction quality issues on site',
+                  'Delayed registry documentation & unfulfilled promises',
+                  'Unresponsive CRM support regarding complaint resolution',
+                ]).map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setNpsReason(tag)}
+                    className="text-[10px] px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-primary-500 hover:text-primary-600 transition-all"
+                  >
+                    + {tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <label className={formLabelCls}>Survey Date<Req /></label>
+              <ThemedDate value={npsDate} onChange={setNpsDate} />
+            </div>
+            <button className={rowActionCls('primary')} disabled={savingNps} onClick={saveNps}>
+              {savingNps ? 'Saving…' : 'Record NPS'}
+            </button>
+          </div>
         </div>
 
         <KV>
-          <Row k="NPS" miss={!c.nps}
-               v={c.nps ? <>{c.nps}/10 <span className="text-[10.5px] text-gray-400 dark:text-gray-500">({fmtD(c.npsDate)})</span></> : null} />
+          <Row k="NPS" miss={c.nps == null && (nps === '' || nps === null)}
+               v={(c.nps != null || nps !== '') ? (
+                 <span className="inline-flex items-center gap-1.5">
+                   <span className={`font-semibold ${
+                     (c.nps ?? Number(nps)) >= 9 ? 'text-emerald-600 dark:text-emerald-400' : (c.nps ?? Number(nps)) >= 7 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
+                   }`}>
+                     {c.nps ?? nps}/10
+                   </span>
+                   <span className="text-[10.5px] text-gray-400 dark:text-gray-500">({fmtD(c.npsDate || npsDate)})</span>
+                 </span>
+               ) : null} />
+
+          <Row k="Primary Reason" miss={!c.npsReason && !npsReason}
+               v={c.npsReason || npsReason || null} />
+
+
+
           <Row k="Open complaints" v={c.openComplaints.length
             ? <span className="text-red-600 dark:text-red-400">{c.openComplaints.length}</span>
             : '0'} />

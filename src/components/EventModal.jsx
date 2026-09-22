@@ -1,7 +1,7 @@
 /* Log an event attended — feeds the Engagement score pillar only. */
 import { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from './Ui.jsx';
+import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import ThemedDate from './theme/ThemedDate.jsx';
 import { todayInput, displayName } from '../utils/core.js';
@@ -31,6 +31,7 @@ export default function EventModal({ customer, onClose }) {
 
   return (
     <Modal
+      drawer
       title="Log event"
       subtitle={`${displayName(customer)} · ${customer.id}`}
       onClose={onClose}
@@ -43,12 +44,12 @@ export default function EventModal({ customer, onClose }) {
     >
       <div className="space-y-4">
         <div>
-          <label className={formLabelCls}>Event name</label>
+          <label className={formLabelCls}>Event name<Req /></label>
           <input value={draft.n} onChange={set('n')} className={formInputCls(!!errors.n)} placeholder="e.g. Owners meet" />
           {errors.n && <div className={formErrorCls}>{errors.n}</div>}
         </div>
         <div>
-          <label className={formLabelCls}>Date</label>
+          <label className={formLabelCls}>Date<Req /></label>
           <ThemedDate value={draft.d} onChange={setVal('d')} invalid={!!errors.d} />
           {errors.d && <div className={formErrorCls}>{errors.d}</div>}
         </div>

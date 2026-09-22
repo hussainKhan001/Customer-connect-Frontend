@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -11,6 +12,7 @@ const inputCls = (bad) =>
 export default function Login() {
   const { login } = useAuth();
   const { getThemeColor } = useTheme();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,6 +24,10 @@ export default function Login() {
     setSubmitting(true);
     try {
       await login(email.trim(), password);
+      /* always the Dashboard, never wherever the URL happened to be
+         sitting (a stale deep link, a session that expired mid-page) —
+         a fresh sign-in should start from the same place every time. */
+      navigate('/command', { replace: true });
     } catch (err) {
       setError(err.message || 'Sign-in failed');
     } finally {

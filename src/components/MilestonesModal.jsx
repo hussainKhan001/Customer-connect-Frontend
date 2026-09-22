@@ -51,6 +51,7 @@ export default function MilestonesModal({ customer, unitIndex, unit, onClose }) 
 
   return (
     <Modal
+      drawer
       title="Edit milestones"
       subtitle={`${unit.unit || 'no unit number yet'} · ${unit.project}`}
       onClose={onClose}

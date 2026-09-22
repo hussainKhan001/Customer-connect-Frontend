@@ -58,8 +58,8 @@ export default function SendLog() {
           <EmptyState
             icon={Send}
             title="No statements sent yet"
-            hint="Once a portfolio statement is sent to an owner, its date, version, channel and outcome will appear here."
-            action={<button className={`${btnGhost} text-xs px-3 py-1.5`} onClick={() => navigate('/statement')}>Open portfolio statement →</button>}
+            hint="Generate a statement from an owner's own Customer Master page — its date, version, channel and outcome will then appear here."
+            action={<button className={`${btnGhost} text-xs px-3 py-1.5`} onClick={() => navigate('/base')}>Open Owner Base →</button>}
           />
         ) : (
         <TableWrap>

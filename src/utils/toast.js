@@ -5,6 +5,7 @@
    exactly the kind of thing that goes unnoticed until someone asks
    "wait, did that actually save?" — errors get to interrupt. */
 import Swal from 'sweetalert2';
+import { showToast } from './toastRenderer.js';
 
 const isDark = () => document.documentElement.classList.contains('dark');
 
@@ -18,31 +19,19 @@ export const CONFIRM_COLOR = {
   neutral: '#3b82f6',
 };
 
-const mixin = () =>
-  Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 3200,
-    timerProgressBar: true,
-    background: isDark() ? '#1f2937' : '#ffffff',
-    color: isDark() ? '#f3f4f6' : '#111827',
-    didOpen: (el) => {
-      el.addEventListener('mouseenter', Swal.stopTimer);
-      el.addEventListener('mouseleave', Swal.resumeTimer);
-    },
-  });
-
 export const toast = {
-  success: (title, text) => mixin().fire({ icon: 'success', title, text }),
-  /* deliberately NOT the toast mixin — a blocking modal, confirmed
-     with OK, so a failed save can't fade away unread */
+  /* Nexora-style corner toast (src/utils/toastRenderer.js) — not
+     sweetalert2, whose default toast reads as a marketing-site popup
+     rather than the calm/compact Nexora feel. */
+  success: (title, text) => showToast({ kind: 'success', title, text }),
+  info: (title, text) => showToast({ kind: 'info', title, text }),
+  /* deliberately still a blocking sweetalert2 modal, confirmed with
+     OK, so a failed save can't fade away unread */
   error: (title, text) => Swal.fire({
     icon: 'error', title, text,
     background: isDark() ? '#1f2937' : '#ffffff',
     color: isDark() ? '#f3f4f6' : '#111827',
   }),
-  info: (title, text) => mixin().fire({ icon: 'info', title, text }),
 };
 
 /* Every write-modal's catch block around mutateCustomer() needs the
