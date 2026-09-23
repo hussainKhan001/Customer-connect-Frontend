@@ -245,6 +245,20 @@ export const TableWrap = forwardRef(({ children, maxHeight, ...rest }, ref) => (
   </div>
 ));
 
+/* the header/body cell + row treatment every data table in the app
+   uses (Owner Base, User Management, Send Log, Events, ...) — most
+   pages still spell this out as their own local `th`/`td` consts
+   (harmless as long as every copy stays byte-identical), but a page
+   whose copy drifts, like Master Data's did (a different `dark:slate`
+   palette and a whole size step off on padding/type from everywhere
+   else), reads as visibly out of place. Pull from here instead of
+   retyping the string when writing a new table. */
+export const th = 'text-left text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40 whitespace-nowrap';
+export const td = 'px-4 py-3.5 border-b border-gray-100 dark:border-gray-700/60 align-top text-sm';
+export const Th = ({ className = '', ...rest }) => <th className={`${th} ${className}`} {...rest} />;
+export const Td = ({ className = '', ...rest }) => <td className={`${td} ${className}`} {...rest} />;
+export const trRowCls = 'group hover:bg-gray-50 dark:hover:bg-gray-700/40';
+
 export const Timeline = ({ children }) => <ul className="list-none m-0 p-0">{children}</ul>;
 
 export const EmptyState = ({ icon: Icon, title, hint, action }) => (

@@ -4,6 +4,7 @@ import { Menu, Moon, Sun } from 'lucide-react';
 import { useApp } from './context/AppContext.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 import { useTheme } from './context/ThemeContext.jsx';
+import { usePageHeaderActionNode } from './context/PageHeaderActionContext.jsx';
 import { Skeleton, PageGate } from './components/Ui.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -49,6 +50,7 @@ export default function App() {
   const { user, authLoading } = useAuth();
   const { base, loading, loadError, live } = useApp();
   const { theme, toggleTheme } = useTheme();
+  const headerAction = usePageHeaderActionNode();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -142,13 +144,16 @@ export default function App() {
                carries the owner's identity, and Nexora's own Lead Detail
                page has no redundant page-title header above it either. */}
             {page.id !== 'master' && (
-              <div className="mb-2 space-y-0.5">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                  {page.title}
-                </h1>
-                <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {page.desc}
-                </p>
+              <div className="mb-2 flex items-start justify-between gap-3 flex-wrap">
+                <div className="space-y-0.5">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    {page.title}
+                  </h1>
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {page.desc}
+                  </p>
+                </div>
+                {headerAction && <div className="flex-shrink-0">{headerAction}</div>}
               </div>
             )}
 

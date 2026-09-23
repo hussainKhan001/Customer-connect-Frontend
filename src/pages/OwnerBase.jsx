@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, ArrowDown, Pencil, Trash2, Search, Building2, Home, Layers, Sparkles, Users } from 'lucide-react';
+import { ArrowUp, ArrowDown, Pencil, Trash2, Search, Building2, Home, Layers, Sparkles, Users, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useApp } from '../context/AppContext.jsx';
 import EditProfileModal from '../components/EditProfileModal.jsx';
 import UnitFinancialsModal from '../components/UnitFinancialsModal.jsx';
+import AddOwnerModal from '../components/AddOwnerModal.jsx';
+import { usePageHeaderAction } from '../context/PageHeaderActionContext.jsx';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { useOwnerBaseFilters } from '../hooks/useOwnerBaseFilters.js';
 import { usePagination } from '../hooks/usePagination.js';
-import { Card, Chip, ScoreBar, TableWrap, confColor, Avatar, tableIconBtnCls, StatsCards, Pagination, EmptyState, PermissionGate } from '../components/Ui.jsx';
+import { Card, Chip, ScoreBar, TableWrap, confColor, Avatar, tableIconBtnCls, StatsCards, Pagination, EmptyState, PermissionGate, BtnPrimary } from '../components/Ui.jsx';
 import { cr, fmtD, inr, psf } from '../utils/core.js';
 import { segDisplay } from '../utils/derived.js';
 import { SEGLBL, STATUSLBL } from '../constants/segments.js';
@@ -59,6 +61,13 @@ const tdMidR = `${tdBase} align-middle text-right tabular-nums`;
 export default function OwnerBase() {
   const { base, deleteCustomer, masterData } = useApp();
   const { openCustomer } = useAppNavigation();
+  const [addOwnerOpen, setAddOwnerOpen] = useState(false);
+  usePageHeaderAction(
+    <BtnPrimary className="h-10 px-4 inline-flex items-center gap-1.5 whitespace-nowrap" onClick={() => setAddOwnerOpen(true)}>
+      <Plus className="w-4 h-4" />
+      Add owner
+    </BtnPrimary>
+  );
   const { projects: PROJECTS, entities: ENTITIES } = masterData;
   const ENT_OPTS = useMemo(() => [{ value: '', label: 'All entities' }, ...ENTITIES.map((e) => ({ value: e, label: e }))], [ENTITIES]);
   const PROJ_OPTS = useMemo(() => [{ value: '', label: 'All projects' }, ...PROJECTS.map((p) => ({ value: p.name, label: p.name }))], [PROJECTS]);
@@ -454,6 +463,13 @@ export default function OwnerBase() {
       )}
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} total={rows.length} pageSize={pageSize} onPageSizeChange={setPageSize} />
+
+      {addOwnerOpen && (
+        <AddOwnerModal
+          onClose={() => setAddOwnerOpen(false)}
+          onCreated={(c) => setEditing(c)}
+        />
+      )}
     </>
   );
 }

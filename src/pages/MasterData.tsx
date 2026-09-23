@@ -29,13 +29,9 @@ import type { Project, Occupation } from '../types/masterData';
    this pilot slice) — cast once here at the import boundary. */
 const useApp = useAppUntyped as () => { masterData: any };
 const useAuth = useAuthUntyped as () => { can: (permission: string) => boolean };
-const { Card, Banner, TableWrap, rowActionCls, EmptyState } = UiModule as any;
+const { Card, Banner, TableWrap, rowActionCls, EmptyState, th, td, trRowCls } = UiModule as any;
 const StringListEditor = StringListEditorUntyped as any;
 const OccupationEditorModal = OccupationEditorModalUntyped as any;
-
-const th =
-  'text-left text-[10px] uppercase tracking-wider text-gray-500 dark:text-slate-400 font-bold px-5 py-4 border-b border-gray-200/80 dark:border-slate-800 bg-gray-50/80 dark:bg-slate-900/60 whitespace-nowrap';
-const td = 'px-5 py-4 border-b border-gray-100 dark:border-slate-800/60 align-middle text-sm whitespace-nowrap text-gray-800 dark:text-slate-200';
 
 const STRING_LISTS: [string, string, string][] = [
   ['communities', 'Community', 'Add a community…'],
@@ -182,17 +178,17 @@ export default function MasterData() {
             </thead>
             <tbody>
               {masterData.projects.map((p: Project) => (
-                <tr key={p.name} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                <tr key={p.name} className={trRowCls}>
                   <td className={td}>
                     <b className="font-bold text-gray-900 dark:text-white">{p.name}</b>
-                    {p.code && <span className="text-[11px] font-mono text-gray-400 dark:text-slate-400"> · {p.code}</span>}
+                    {p.code && <span className="text-[11px] font-mono text-gray-400 dark:text-gray-500"> · {p.code}</span>}
                   </td>
                   <td className={td}>{p.entity}</td>
                   <td className={`${td} text-right tabular-nums font-medium`}>{p.launch || '—'}</td>
                   <td className={`${td} text-right tabular-nums font-semibold`}>{p.ask ?? '—'}</td>
                   <td className={`${td} text-right tabular-nums font-semibold`}>{p.resale ?? '—'}</td>
                   <td className={`${td} text-right tabular-nums font-semibold text-emerald-600 dark:text-emerald-400`}>{p.circle ?? '—'}</td>
-                  <td className={`${td} text-[11px] text-gray-400 dark:text-slate-400`}>{p.noted || '—'}</td>
+                  <td className={`${td} text-[11px] text-gray-400 dark:text-gray-500`}>{p.noted || '—'}</td>
                   <td className={`${td} text-right space-x-1.5`}>
                     <button className={rowActionCls('primary')} onClick={() => setEditingProject(p)} title={`Edit ${p.name}`}>
                       <Pencil className="w-3 h-3" />
@@ -232,12 +228,12 @@ export default function MasterData() {
             </thead>
             <tbody>
               {masterData.occupations.map((o: Occupation) => (
-                <tr key={o.k} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                <tr key={o.k} className={trRowCls}>
                   <td className={td}>
                     <b className="font-semibold text-gray-900 dark:text-white">{o.k}</b>
                   </td>
                   <td className={`${td} text-right tabular-nums font-semibold`}>{o.b}</td>
-                  <td className={`${td} text-[11px] text-gray-400 dark:text-slate-400`}>{o.band || '—'}</td>
+                  <td className={`${td} text-[11px] text-gray-400 dark:text-gray-500`}>{o.band || '—'}</td>
                   <td className={`${td} text-right space-x-1.5`}>
                     <button className={rowActionCls('primary')} onClick={() => setEditingOcc(o)} title={`Edit ${o.k}`}>
                       <Pencil className="w-3 h-3" />
@@ -269,7 +265,7 @@ export default function MasterData() {
 
       <div>
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">Document checklist, by property type</h2>
-        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
           Each unit's Document Vault offers the checklist for whichever type that unit is, plus an "Other"
           fallback. Removing a document here never deletes one already uploaded under it.
         </p>

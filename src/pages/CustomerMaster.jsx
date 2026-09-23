@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Pencil, ArrowLeft, AlertTriangle, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useCurrentCustomer } from '../hooks/useCurrentCustomer.js';
 import { useFollowUpCountdown } from '../hooks/useFollowUpCountdown.js';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -26,17 +27,25 @@ import MFollowUps from './master/MFollowUps.jsx';
 import MDocuments from './master/MDocuments.jsx';
 import MActivity from './master/MActivity.jsx';
 import MGovernance from './master/MGovernance.jsx';
+import MAuditLog from './master/MAuditLog.jsx';
 
+/* an optional 3rd element gates the tab behind a capability — same as
+   PAGES' own `capability` field in navigation.js. Audit log shares the
+   exact row the global Audit Log page uses ('Module: Audit log'), so
+   whoever can see the system-wide trail can see this owner-scoped
+   slice of it, and nobody else gets a tab pointing at a route they'd
+   just get a 403 from. */
 const CTABS = [
   ['overview', 'Overview'], ['portfolio', 'Portfolio'], ['investor', 'Investor'], ['ledger', 'Ledger'],
   ['relationship', 'Relationship'], ['followups', 'Timeline'],
   ['documents', 'Documents'], ['activity', 'Activity log'], ['governance', 'Consent & gate'],
+  ['audit', 'Audit log', 'Module: Audit log'],
 ];
 
 const TAB_VIEWS = {
   overview: MOverview, portfolio: MPortfolio, investor: MInvestor, ledger: MLedger,
   relationship: MRelationship, followups: MFollowUps, documents: MDocuments,
-  activity: MActivity, governance: MGovernance,
+  activity: MActivity, governance: MGovernance, audit: MAuditLog,
 };
 
 /* short chip labels for confidence()'s full sentence-length checks
@@ -59,6 +68,7 @@ const CONF_SHORT_LABEL = {
 
 export default function CustomerMaster() {
   const { base, weights } = useApp();
+  const { can } = useAuth();
   const { getThemeColor } = useTheme();
   const { id, tab } = useParams();
   const navigate = useNavigate();
@@ -203,7 +213,7 @@ export default function CustomerMaster() {
 
         <div className="flex-1 min-w-0 flex flex-col bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
           <nav className="flex flex-shrink-0 overflow-x-auto no-scrollbar border-b border-gray-100 dark:border-gray-700 px-2 sm:px-3">
-            {CTABS.map(([k, l]) => (
+            {CTABS.filter(([, , capability]) => !capability || can(capability)).map(([k, l]) => (
               <button
                 key={k}
                 onClick={() => navigate(`/master/${c.id}/${k}`, { replace: true })}
