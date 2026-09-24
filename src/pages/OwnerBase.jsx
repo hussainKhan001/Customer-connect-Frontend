@@ -62,12 +62,12 @@ export default function OwnerBase() {
   const { base, deleteCustomer, masterData } = useApp();
   const { openCustomer } = useAppNavigation();
   const [addOwnerOpen, setAddOwnerOpen] = useState(false);
-  usePageHeaderAction(
+  usePageHeaderAction(useMemo(() => (
     <BtnPrimary className="h-10 px-4 inline-flex items-center gap-1.5 whitespace-nowrap" onClick={() => setAddOwnerOpen(true)}>
       <Plus className="w-4 h-4" />
       Add owner
     </BtnPrimary>
-  );
+  ), []));
   const { projects: PROJECTS, entities: ENTITIES } = masterData;
   const ENT_OPTS = useMemo(() => [{ value: '', label: 'All entities' }, ...ENTITIES.map((e) => ({ value: e, label: e }))], [ENTITIES]);
   const PROJ_OPTS = useMemo(() => [{ value: '', label: 'All projects' }, ...PROJECTS.map((p) => ({ value: p.name, label: p.name }))], [PROJECTS]);

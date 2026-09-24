@@ -19,7 +19,18 @@ export function PageHeaderActionProvider({ children }) {
 /* Call from a page component with whatever should appear top-right,
    level with the page title — an action that belongs to the whole
    page (Add owner, Export, ...), not one specific filter/toolbar row
-   further down. Pass `null` (or nothing) to clear it explicitly. */
+   further down. Pass `null` (or nothing) to clear it explicitly.
+
+   `node` MUST be referentially stable (wrap it in useMemo, deps on
+   whatever it actually depends on — usually just []) — it drives this
+   hook's own effect dependency array. Passing a plain inline JSX
+   literal recreates a new element every render, which re-fires the
+   effect every render, which calls setAction, which re-renders
+   whoever reads usePageHeaderActionNode() (App.jsx) and cascades a
+   re-render straight back down into this same page — an infinite
+   render loop that manifests as "the page never finishes rendering",
+   not a thrown error. This bit a real page (OwnerBase.jsx) once
+   already; don't repeat it. */
 export function usePageHeaderAction(node = null) {
   const ctx = useContext(PageHeaderActionContext);
   useEffect(() => {
