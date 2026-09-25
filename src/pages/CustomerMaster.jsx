@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCurrentCustomer } from '../hooks/useCurrentCustomer.js';
 import { useFollowUpCountdown } from '../hooks/useFollowUpCountdown.js';
+import { useFirstTouch } from '../hooks/useFirstTouch.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { Card, Chip, Row, KV, Meter, Dot, confMeterCls, btnGhost, BtnPrimary } from '../components/Ui.jsx';
 import ThemedSelect from '../components/theme/ThemedSelect.jsx';
@@ -14,7 +15,7 @@ import CallModal from '../components/CallModal.jsx';
 import SegmentOverrideModal from '../components/SegmentOverrideModal.jsx';
 import InviteListDrawer from '../components/InviteListDrawer.jsx';
 import PortfolioStatementDrawer from '../components/PortfolioStatementDrawer.jsx';
-import { initials, inrF, fmtD, displayName, hasCoApplicant } from '../utils/core.js';
+import { initials, inrF, fmtD, fmtDT, displayName, hasCoApplicant } from '../utils/core.js';
 import { roll, confidence, segDisplay, timelineItems } from '../utils/derived.js';
 import { STATUSLBL } from '../constants/segments.js';
 
@@ -92,6 +93,8 @@ export default function CustomerMaster() {
     if (isFallback || !tab) navigate(`/master/${current.id}/${tab || 'overview'}`, { replace: true });
   }, [current, isFallback, tab, navigate]);
 
+  const firstTouch = useFirstTouch(current?.id);
+
   if (!current) return <div className="text-xs text-gray-500 dark:text-gray-400">No owners on book.</div>;
 
   const c = current;
@@ -146,6 +149,11 @@ export default function CustomerMaster() {
                 <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
                   {c.id} · {c.city}
                 </div>
+                {firstTouch?.actor && (
+                  <div className="text-[10.5px] text-gray-400 dark:text-gray-500 mt-0.5 truncate" title={fmtDT(firstTouch.at)}>
+                    Added by {firstTouch.actor.name}
+                  </div>
+                )}
               </div>
             </div>
 
