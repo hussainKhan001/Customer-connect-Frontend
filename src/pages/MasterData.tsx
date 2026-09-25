@@ -18,10 +18,12 @@ import { useApp as useAppUntyped } from '../context/AppContext.jsx';
 import { useAuth as useAuthUntyped } from '../context/AuthContext.jsx';
 import * as UiModule from '../components/Ui.jsx';
 import StringListEditorUntyped from '../components/masterdata/StringListEditor.jsx';
+import MessageTemplateEditorUntyped from '../components/masterdata/MessageTemplateEditor.jsx';
 import ProjectEditorModal from '../components/masterdata/ProjectEditorModal.tsx';
 import OccupationEditorModalUntyped from '../components/masterdata/OccupationEditorModal.jsx';
 import { toast, CONFIRM_COLOR } from '../utils/toast.js';
 import { useSettingsMutation } from '../hooks/useSettingsMutation.ts';
+import { MESSAGE_TEMPLATE_TYPES } from '../constants/messageTemplates.js';
 import type { Project, Occupation } from '../types/masterData';
 
 /* AppContext/AuthContext/Ui.jsx/StringListEditor/OccupationEditorModal are
@@ -31,6 +33,7 @@ const useApp = useAppUntyped as () => { masterData: any };
 const useAuth = useAuthUntyped as () => { can: (permission: string) => boolean };
 const { Card, Banner, TableWrap, rowActionCls, EmptyState, th, td, trRowCls } = UiModule as any;
 const StringListEditor = StringListEditorUntyped as any;
+const MessageTemplateEditor = MessageTemplateEditorUntyped as any;
 const OccupationEditorModal = OccupationEditorModalUntyped as any;
 
 const STRING_LISTS: [string, string, string][] = [
@@ -135,6 +138,22 @@ export default function MasterData() {
     try {
       await mutation.mutateAsync({ documentTemplate: { propertyType, documents } });
       toast.success('Saved', 'The new checklist applies to every unit of this type, right away.');
+    } catch (err: any) {
+      toast.error('Could not save', Object.values(err.errors || {})[0] || err.message || 'Try again.');
+    } finally {
+      setSavingField(null);
+    }
+  };
+
+  /* same one-category-per-save shape as saveDocTemplate above, and the
+     same reason — the Trigger Calendar's WhatsApp button reads this
+     same map by category key. */
+  const saveMessageTemplate = async (key: string, text: string) => {
+    const savingKey = `msg:${key}`;
+    setSavingField(savingKey);
+    try {
+      await mutation.mutateAsync({ messageTemplate: { key, text } });
+      toast.success('Saved', "The Trigger Calendar's WhatsApp button uses this message right away.");
     } catch (err: any) {
       toast.error('Could not save', Object.values(err.errors || {})[0] || err.message || 'Try again.');
     } finally {
@@ -280,6 +299,25 @@ export default function MasterData() {
             placeholder="Add a document…"
             saving={savingField === `doc:${type}`}
             onSave={(next: string[]) => saveDocTemplate(type, next)}
+          />
+        ))}
+      </div>
+
+      <div>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white">WhatsApp message templates</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+          The Trigger Calendar's WhatsApp button uses these — write the message once per category here, and
+          every owner that trigger fires for gets it with their own name filled in.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {MESSAGE_TEMPLATE_TYPES.map(([key, label]: [string, string]) => (
+          <MessageTemplateEditor
+            key={key}
+            title={label}
+            value={masterData.messageTemplates[key] || ''}
+            saving={savingField === `msg:${key}`}
+            onSave={(next: string) => saveMessageTemplate(key, next)}
           />
         ))}
       </div>

@@ -1,16 +1,16 @@
 import Swal from 'sweetalert2';
-import { Check } from 'lucide-react';
+import { Check, MessageCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { Card, Chip, Banner, Timeline, TableWrap } from '../components/Ui.jsx';
-import { inr, nextFest, addD, fmtDM, TODAY, initials, todayInput } from '../utils/core.js';
-import { triggerList } from '../utils/derived.js';
+import { inr, nextFest, addD, fmtDM, TODAY, initials, todayInput, displayName } from '../utils/core.js';
+import { triggerList, triggerTemplateKey } from '../utils/derived.js';
 import { CONFIRM_COLOR } from '../utils/toast.js';
 
 const kindTone = (k) => (k === 'money' ? 'g' : k === 'personal' ? 'm' : 'w');
 
-function Box({ title, list, openCustomer, ack }) {
+function Box({ title, list, openCustomer, ack, sendWhatsApp, messageTemplates }) {
   const { getThemeColor } = useTheme();
   return (
     <Card title={title} hint={<span className="tabular-nums">{list.length}</span>} pad={false}>
@@ -19,6 +19,14 @@ function Box({ title, list, openCustomer, ack }) {
         {list.length ? list.map((x, i) => {
           const isDueToday = x.days === 0 && !x.acked;
           const handledToday = x.days === 0 && x.acked;
+          const templateKey = triggerTemplateKey(x.label);
+          const template = templateKey ? messageTemplates[templateKey] : null;
+          const waDigits = (x.c.mobile || '').replace(/\D/g, '');
+          const waHasMobile = waDigits.length >= 10;
+          const waPhone = waDigits.length === 10 ? `91${waDigits}` : waDigits;
+          const waHref = template && waHasMobile
+            ? `https://wa.me/${waPhone}?text=${encodeURIComponent(template.replace(/\{name\}/g, displayName(x.c)))}`
+            : null;
           return (
           <li key={i}
               className={`flex items-start gap-3 px-3.5 py-3 border-b border-gray-100 dark:border-gray-700/60 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer ${isDueToday ? 'bg-red-50/60 dark:bg-red-500/10' : handledToday ? 'bg-green-50/50 dark:bg-green-500/10' : ''}`}
@@ -63,13 +71,40 @@ function Box({ title, list, openCustomer, ack }) {
                 </div>
               )}
             </div>
-            {isDueToday && (
+            {isDueToday && !template && (
+              /* no saved message for this trigger's category yet (Master
+                 Data → WhatsApp message templates) — same manual
+                 mark-handled flow this button always did, so nothing
+                 regresses before someone writes the templates. */
               <button
                 onClick={(e) => { e.stopPropagation(); ack(x); }}
                 title="Checked — mark handled"
                 className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 "
               >
                 <Check className="w-4 h-4" />
+              </button>
+            )}
+            {isDueToday && template && waHref && (
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => { e.stopPropagation(); sendWhatsApp(x); }}
+                title={`Opens WhatsApp for ${x.c.mobile}`}
+                className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10"
+              >
+                <span className="pointer-events-none flex items-center justify-center">
+                  <MessageCircle className="w-4 h-4" />
+                </span>
+              </a>
+            )}
+            {isDueToday && template && !waHref && (
+              <button
+                onClick={(e) => { e.stopPropagation(); Swal.fire({ icon: 'warning', title: 'No mobile on record', text: "Add a mobile number to this owner's profile before sending a WhatsApp message." }); }}
+                title="No mobile on record"
+                className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10"
+              >
+                <MessageCircle className="w-4 h-4" />
               </button>
             )}
           </li>
@@ -86,7 +121,7 @@ function Box({ title, list, openCustomer, ack }) {
 }
 
 export default function TriggerCalendar() {
-  const { base, incompleteRecords, mutateCustomer } = useApp();
+  const { base, incompleteRecords, mutateCustomer, masterData } = useApp();
   const { openCustomer } = useAppNavigation();
   const t = triggerList(base, incompleteRecords);
   const ack = async (x) => {
@@ -103,6 +138,14 @@ export default function TriggerCalendar() {
     if (!isConfirmed) return;
     mutateCustomer(`/api/customers/${x.c.id}/trigger-acks`, { label: x.label, date: todayInput(), remark }, 'POST').catch(() => {});
   };
+  /* the WhatsApp icon's href already does the actual navigation (a
+     real <a>, not window.open() — see the same fix on the Portfolio
+     Statement's own Share on WhatsApp button for why); this just
+     records that it happened, no confirmation dialog in the way of
+     the one-click send the icon promises. */
+  const sendWhatsApp = (x) => {
+    mutateCustomer(`/api/customers/${x.c.id}/trigger-acks`, { label: x.label, date: todayInput(), remark: 'Sent via WhatsApp template' }, 'POST').catch(() => {});
+  };
   const nf = nextFest();
   const bk = (lo, hi) => t.filter((x) => x.days >= lo && x.days <= hi);
   const blocked = base.filter((c) => c._blocked).length;
@@ -117,9 +160,9 @@ export default function TriggerCalendar() {
       </Banner>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Box title="Next 7 days" list={bk(0, 7)} openCustomer={openCustomer} ack={ack} />
-        <Box title="8 – 30 days" list={bk(8, 30)} openCustomer={openCustomer} ack={ack} />
-        <Box title="31 – 90 days" list={bk(31, 90)} openCustomer={openCustomer} ack={ack} />
+        <Box title="Next 7 days" list={bk(0, 7)} openCustomer={openCustomer} ack={ack} sendWhatsApp={sendWhatsApp} messageTemplates={masterData.messageTemplates} />
+        <Box title="8 – 30 days" list={bk(8, 30)} openCustomer={openCustomer} ack={ack} sendWhatsApp={sendWhatsApp} messageTemplates={masterData.messageTemplates} />
+        <Box title="31 – 90 days" list={bk(31, 90)} openCustomer={openCustomer} ack={ack} sendWhatsApp={sendWhatsApp} messageTemplates={masterData.messageTemplates} />
       </div>
     </>
   );

@@ -105,6 +105,11 @@ export function AppProvider({ children }) {
          doesn't actually say. A Mongoose Map serialises to a plain
          object over JSON. */
       documentTemplates: settings?.documentTemplates || {},
+      /* same reasoning as documentTemplates above — the Trigger
+         Calendar's WhatsApp button has nothing to send for a category
+         Master Data hasn't actually got a saved message for, rather
+         than silently sending a hardcoded stand-in nobody wrote. */
+      messageTemplates: settings?.messageTemplates || {},
     };
   }, [settings]);
 

@@ -246,6 +246,25 @@ export function triggerList(base, incompleteBase = []) {
   return out.sort((a, b) => a.days - b.days || (b.c._total ?? 0) - (a.c._total ?? 0));
 }
 
+/* Maps a triggerList() row's rendered `label` to one of the fixed
+   message-template categories (see Settings.js's messageTemplates and
+   the Master Data page's own editor for these) — 'Booking anniversary'
+   and the LTCG/loan-closure labels above carry a dynamic suffix (a
+   year count, a unit isn't part of the label at all) that must never
+   become part of the lookup key itself, or every distinct suffix would
+   need its own saved template. Returns null for anything that isn't
+   (yet) templated — callers fall back to "no WhatsApp action offered"
+   rather than guessing a category. */
+export function triggerTemplateKey(label) {
+  if (label === 'Birthday') return 'birthday';
+  if (label === 'Wedding anniversary') return 'wedding_anniversary';
+  if (label.startsWith('Booking anniversary')) return 'booking_anniversary';
+  if (label === 'Registry anniversary') return 'registry_anniversary';
+  if (label.startsWith('Home loan closes')) return 'loan_closure';
+  if (label.startsWith('Completes 24 months')) return 'ltcg_window';
+  return null;
+}
+
 /* ---- due today and not yet acknowledged — the "point" every trigger
    surface (Sidebar nav, header bell, the Trigger Calendar's own rows)
    dots when it's true, and stops dotting the moment it's acked ---- */
@@ -350,6 +369,21 @@ export function docsFor(c, documentTemplates = {}) {
     return { key, n, unit, type, ok: pages.length > 0, d: pages[0]?.uploadedAt || null };
   };
 
+  /* One specific, known Master Data rename: Plot's checklist used to
+     read Sale Agreement/Sale Deed, now reads Agreement/Registry — Sale
+     Deed and Registry are, in practice, the same document in an Indian
+     property transaction. Resolved live at read time (never a one-off
+     rewrite of stored keys): if the CURRENT label's key has nothing on
+     file, an old document under the legacy label counts for it instead
+     of reading as missing. If the current label already has its own
+     real upload, the legacy one is left alone — never merged/
+     overwritten — and still surfaces on its own via the "unmatched
+     type" fallback further down, exactly as before this alias existed. */
+  const LEGACY_TYPE_ALIASES = {
+    Agreement: ['Sale Agreement'],
+    Registry: ['Sale Deed'],
+  };
+
   const d = [];
   const expectedKeys = new Set();
   c.units.forEach((u) => {
@@ -367,7 +401,16 @@ export function docsFor(c, documentTemplates = {}) {
     docTypes.forEach((docType) => {
       const key = `${slug(docType)}-${u.unit || 'noNumber'}`;
       expectedKeys.add(key);
-      d.push(row(key, `${docType} — ${label}`, label, docType));
+      let pages = pagesFor(key);
+      let usedKey = key;
+      if (!pages.length) {
+        for (const legacyLabel of LEGACY_TYPE_ALIASES[docType] || []) {
+          const legacyKey = `${slug(legacyLabel)}-${u.unit || 'noNumber'}`;
+          const legacyPages = pagesFor(legacyKey);
+          if (legacyPages.length) { pages = legacyPages; usedKey = legacyKey; expectedKeys.add(legacyKey); break; }
+        }
+      }
+      d.push({ key: usedKey, n: `${docType} — ${label}`, unit: label, type: docType, ok: pages.length > 0, d: pages[0]?.uploadedAt || null });
     });
     if (u.exited) {
       const key = `transfer-${u.unit || 'noNumber'}`;
