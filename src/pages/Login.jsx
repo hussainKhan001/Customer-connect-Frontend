@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ShieldCheck, Building2, ArrowRight, Sun, Moon } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Building2, Sun, Moon, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 
 export default function Login() {
   const { login } = useAuth();
-  const { theme, toggleTheme, getThemeColor } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,7 +14,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const themeColor = getThemeColor() || '#f97316';
+  const isDark = theme === 'dark';
 
   const submit = async (e) => {
     e.preventDefault();
@@ -31,168 +31,198 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex bg-white dark:bg-gray-950 font-sans">
+    <div className={`relative min-h-screen w-full flex flex-col justify-between font-sans overflow-hidden select-none transition-colors duration-300 ${
+      isDark ? 'bg-[#0b0f19] text-gray-100' : 'bg-[#d7d8dc] text-gray-900'
+    }`}>
+      {/* Dynamic Theme Switcher Button */}
       <button
         type="button"
         onClick={toggleTheme}
-        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        className="fixed top-5 right-5 z-20 w-9 h-9 flex items-center justify-center rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 shadow-sm transition-all active:scale-95"
+        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        className={`fixed top-5 right-5 z-30 w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md shadow-xl transition-all active:scale-95 border ${
+          isDark 
+            ? 'bg-gray-800/80 text-amber-400 border-amber-500/30 hover:bg-gray-700/80 hover:border-amber-400' 
+            : 'bg-white/40 text-gray-900 border-white/40 hover:bg-white/60 hover:border-white'
+        }`}
       >
-        {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+        {isDark ? <Sun className="w-5 h-5 text-amber-300 animate-spin-slow" /> : <Moon className="w-5 h-5 text-gray-900" />}
       </button>
 
-      {/* Left — brand panel over a real photo. Placeholder image (Picsum,
-         a stable seeded-photo service built for exactly this — dropping
-         in a real image during development without needing an asset
-         yet) — swap PANEL_IMAGE for an actual property photo (e.g.
-         uploaded the same way Documents already uses Cloudinary) any
-         time; nothing else here depends on where the image comes from.
-         Hidden below lg: the form is what matters on a phone-width
-         screen, not the artwork beside it. */}
-      <div className="hidden lg:flex relative w-1/2 flex-col justify-between overflow-hidden p-10 xl:p-14 text-white">
-        <img
-          src="https://picsum.photos/seed/neoteric-connect-login/1200/1600"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        {/* dark wash for text legibility over an arbitrary photo, plus a
-           touch of the theme colour so it still reads as this app's own
-           login rather than a generic stock-photo splash screen */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
-        <div className="absolute inset-0 mix-blend-multiply opacity-40" style={{ backgroundColor: themeColor }} />
-
-        {/* ambient drifting glow — a bit of extra depth over the photo */}
-        <div className="absolute -top-16 -left-10 w-72 h-72 rounded-full blur-[90px] pointer-events-none animate-float-slow" style={{ backgroundColor: `${themeColor}44` }} />
-
-        <div className="relative flex items-center gap-2.5 animate-fade-in-up">
-          <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/25">
-            <Building2 className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">Neoteric Connect</span>
-        </div>
-
-        <div className="relative">
-          <h2 className="text-3xl xl:text-4xl font-bold tracking-tight leading-tight max-w-md animate-fade-in-up [animation-delay:120ms]">
-            Every owner relationship, in one portfolio system.
-          </h2>
-          <p className="text-sm text-white/70 mt-4 max-w-sm leading-relaxed animate-fade-in-up [animation-delay:240ms]">
-            Trigger dates, contact gates, statements and referrals — the one place the whole team works
-            from, instead of a dozen spreadsheets that all say something different.
-          </p>
-        </div>
+      {/* Canvas Background with Organic Dynamic Wave Split */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
+        <svg
+          className="w-full h-full object-cover transition-all duration-500"
+          viewBox="0 0 1440 900"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Base bottom color */}
+          <rect width="1440" height="900" fill={isDark ? "#0b0f19" : "#d7d8dc"} />
+          
+          {/* Top vibrant burnt-orange / dark orange wave area */}
+          <path
+            fill={isDark ? "#9a3412" : "#c8471a"}
+            className="transition-colors duration-500"
+            d="M 0,0 
+               L 1440,0 
+               L 1440,240 
+               C 1340,320 1260,300 1140,430 
+               C 1020,560 720,490 520,480 
+               C 320,470 120,640 0,660 
+               Z"
+          />
+        </svg>
       </div>
 
-      {/* Right — the actual form, lifted off the page on a soft card
-         instead of floating directly on flat white */}
-      <div
-        className="relative flex-1 flex items-center justify-center px-6 py-12 sm:px-10 bg-gray-50/60 dark:bg-gray-950"
-        style={{ backgroundImage: `radial-gradient(${theme === 'dark' ? '#ffffff0d' : '#00000009'} 1px, transparent 1px)`, backgroundSize: '26px 26px' }}
-      >
-        <div
-          className="absolute w-80 h-80 rounded-full blur-[110px] opacity-[0.15] pointer-events-none animate-float-slow"
-          style={{ backgroundColor: themeColor, top: '10%', right: '10%' }}
-        />
+      {/* Main Content Layout */}
+      <div className="relative z-10 min-h-screen w-full flex flex-col justify-between p-6 sm:p-12 lg:p-16 max-w-7xl mx-auto">
+        {/* Header / Brand Logo */}
+        <div className="flex items-center gap-3 animate-fade-in-down">
+          <div className={`w-10 h-10 rounded-xl backdrop-blur-md flex items-center justify-center ring-1 shadow-sm ${
+            isDark ? 'bg-amber-500/20 ring-amber-500/30' : 'bg-white/20 ring-white/30'
+          }`}>
+            <Building2 className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white drop-shadow-sm">Neoteric Connect</span>
+        </div>
 
-        <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-xl shadow-gray-900/[0.06] dark:shadow-black/40 border border-gray-100 dark:border-gray-800 p-8 sm:p-9 animate-fade-in-up">
-          <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: themeColor }}>
-              <Building2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">Neoteric Connect</span>
+        {/* Hero & Form Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center my-auto py-8">
+          
+          {/* Left Column - Large Creative Headline */}
+          <div className="lg:col-span-6 xl:col-span-7 pr-0 lg:pr-8 space-y-4">
+            <h1 className="text-4xl sm:text-5xl xl:text-6xl font-extrabold text-white leading-[1.12] tracking-tight drop-shadow-md max-w-xl">
+              Looking to collaborate? <br />
+              <span className="text-white/95 font-semibold text-3xl sm:text-4xl xl:text-5xl block mt-2">
+                Get in touch to find out how we can help.
+              </span>
+            </h1>
+            <p className="text-white/80 text-base sm:text-lg max-w-md font-normal leading-relaxed pt-2">
+              Every owner relationship in one portfolio system. Track trigger dates, contacts, statements, and referrals seamlessly.
+            </p>
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Welcome back</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 mb-8">Sign in to your Owner Portfolio System account.</p>
+          {/* Right Column - Form Area & Dark Card */}
+          <div className="lg:col-span-6 xl:col-span-5 flex flex-col items-start lg:items-end">
+            <div className="w-full max-w-md">
+              
+              {/* Header text right above card */}
+              <div className="mb-6 text-left space-y-1">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight drop-shadow-sm">
+                  Get Started
+                </h2>
+                <p className="text-white/85 text-sm sm:text-base font-medium leading-normal max-w-sm">
+                  We're here to help. Enter your credentials to access your portfolio system.
+                </p>
+              </div>
 
-          <form onSubmit={submit} className="space-y-4">
-            <div className="animate-fade-in-up [animation-delay:160ms]">
-              <label htmlFor="login-email" className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@neotericgrp.in"
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm border ${
-                    error ? 'border-red-400 focus:ring-red-200 dark:focus:ring-red-900/40' : 'border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 focus:ring-gray-200 dark:focus:ring-gray-700/60'
-                  } focus:outline-none focus:ring-4 focus:-translate-y-px transition-all duration-200`}
-                  required
-                />
+              {/* Form Container (Charcoal in Light, Deep Slate/Black with subtle glow in Dark) */}
+              <div className={`w-full rounded-3xl p-7 sm:p-9 shadow-2xl transition-colors duration-300 backdrop-blur-xl border ${
+                isDark 
+                  ? 'bg-[#111827] text-white border-amber-500/20 shadow-black/80' 
+                  : 'bg-[#1e222b] text-white border-white/10 shadow-black/40'
+              }`}>
+                
+                <form onSubmit={submit} className="space-y-5">
+                  {/* Email Field */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-gray-300 ml-3">Email Address</label>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter a valid email address"
+                        className={`w-full px-5 py-3.5 rounded-full text-sm font-medium border transition-all duration-200 shadow-inner focus:outline-none focus:ring-4 ${
+                          isDark
+                            ? 'bg-[#1f293b] text-white placeholder-gray-400 border-gray-700 focus:border-amber-500 focus:bg-gray-900 focus:ring-amber-500/20'
+                            : 'bg-[#c8cbce] text-gray-900 placeholder-gray-600 border-transparent focus:border-orange-500 focus:bg-white focus:ring-orange-500/20'
+                        }`}
+                      />
+                      <Mail className={`w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ${
+                        isDark ? 'text-gray-400' : 'text-gray-500'
+                      }`} />
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-gray-300 ml-3">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        className={`w-full pl-5 pr-12 py-3.5 rounded-full text-sm font-medium border transition-all duration-200 shadow-inner focus:outline-none focus:ring-4 ${
+                          isDark
+                            ? 'bg-[#1f293b] text-white placeholder-gray-400 border-gray-700 focus:border-amber-500 focus:bg-gray-900 focus:ring-amber-500/20'
+                            : 'bg-[#c8cbce] text-gray-900 placeholder-gray-600 border-transparent focus:border-orange-500 focus:bg-white focus:ring-orange-500/20'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors p-1 ${
+                          isDark ? 'text-gray-400 hover:text-amber-400' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Error Notification */}
+                  {error && (
+                    <div className="p-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 animate-shake">
+                      <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className={`w-full py-4 rounded-full font-bold text-sm tracking-wider uppercase text-white transition-all duration-200 shadow-lg flex items-center justify-center gap-2 group disabled:opacity-60 ${
+                        isDark
+                          ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-950/50'
+                          : 'bg-[#c8471a] hover:bg-[#b33d14] shadow-orange-950/40'
+                      }`}
+                    >
+                      {submitting ? (
+                        <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span>SUBMIT</span>
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+
               </div>
             </div>
-
-            <div className="animate-fade-in-up [animation-delay:240ms]">
-              <label htmlFor="login-password" className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={`w-full pl-10 pr-11 py-2.5 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm border ${
-                    error ? 'border-red-400 focus:ring-red-200 dark:focus:ring-red-900/40' : 'border-gray-300 dark:border-gray-700 focus:border-gray-400 dark:focus:border-gray-500 focus:ring-gray-200 dark:focus:ring-gray-700/60'
-                  } focus:outline-none focus:ring-4 focus:-translate-y-px transition-all duration-200`}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 text-xs text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-lg p-3 animate-fade-in-down">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="group w-full inline-flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-sm text-white bg-gray-900 dark:bg-gray-100 dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-white hover:shadow-lg hover:shadow-gray-900/20 dark:hover:shadow-black/40 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none animate-fade-in-up [animation-delay:320ms]"
-            >
-              {submitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/40 dark:border-gray-900/30 border-t-white dark:border-t-gray-900 rounded-full animate-spin" />
-                  <span>Signing in…</span>
-                </>
-              ) : (
-                <>
-                  <span>Login</span>
-                  <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* No "Register" / social sign-in below — this app has neither a
-             public sign-up flow (accounts are created from User Management
-             by an admin) nor Google/Facebook OAuth wired up, so a button
-             for either would just be decorative and not actually work. */}
-          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center gap-2 text-[11px] text-gray-400 dark:text-gray-500 animate-fade-in-up [animation-delay:400ms]">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>256-bit SSL encrypted enterprise portal</span>
           </div>
+
+        </div>
+
+        {/* Footer info */}
+        <div className={`text-xs font-medium text-center sm:text-left flex items-center justify-between pt-4 border-t transition-colors duration-300 ${
+          isDark ? 'text-gray-400 border-gray-800' : 'text-gray-600 border-gray-400/30'
+        }`}>
+          <span>&copy; {new Date().getFullYear()} Neoteric Connect. All rights reserved.</span>
+          <span className="hidden sm:inline">Enterprise Owner Portfolio Portal</span>
         </div>
       </div>
     </div>
   );
 }
+
+

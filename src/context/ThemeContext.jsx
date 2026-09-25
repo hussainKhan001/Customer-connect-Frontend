@@ -1,64 +1,45 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-
-const ThemeContext = createContext(null);
-
-const THEME_COLOR = '#f97316';
-
-function getInitialTheme() {
-  if (typeof window === 'undefined') return 'light';
-  const stored = window.localStorage.getItem('theme');
-  if (stored === 'dark' || stored === 'light') return stored;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyThemeToDocument(t) {
-  if (typeof document === 'undefined') return;
-  const isDark = t === 'dark';
-  document.documentElement.classList.toggle('dark', isDark);
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-}
+/* =====================================================================
+   THEME — thin compatibility layer over the Redux theme slice
+   (store/slices/themeSlice.js). Every existing consumer still just
+   calls useTheme() and gets back the same { theme, toggleTheme,
+   getThemeColor } shape as before; only the storage underneath moved
+   from Context+useState to the Redux store. Kept as its own module
+   (not inlined into components) so nothing else in the app had to
+   change import paths during the migration.
+   ===================================================================== */
+import { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { toggleTheme as toggleThemeAction, applyThemeToDocument } from '../store/slices/themeSlice.js';
 
 export function ThemeProvider({ children }) {
-  const applied = useRef(false);
-  if (!applied.current && typeof document !== 'undefined') {
-    applyThemeToDocument(getInitialTheme());
-    applied.current = true;
-  }
+  const theme = useSelector((s) => s.theme.value);
 
-  const [theme, setTheme] = useState(getInitialTheme);
-
-  /* Applying the <html class="dark"> swap here — in a useEffect that
-     only fires after React commits and the browser paints — is what
-     caused the flash: any component reading `theme` straight from
-     this context (JS-driven colour logic) re-renders with the NEW
-     value in the very same commit as the click, while every component
-     that instead relies on Tailwind's `dark:` utility classes stays on
-     the OLD styling until this effect finally runs and flips the
-     class a tick later. Two update times for what should be one
-     atomic switch. Fixed by applying the DOM class synchronously
-     inside the click handler itself, before setState — see
-     toggleTheme below — so both update paths land in the same paint. */
   useEffect(() => {
     window.localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    applyThemeToDocument(next);
-    setTheme(next);
-  };
-
-  const getThemeColor = () => THEME_COLOR;
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, getThemeColor }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return children;
 }
 
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used inside <ThemeProvider>');
-  return ctx;
+  const theme = useSelector((s) => s.theme.value);
+  const color = useSelector((s) => s.theme.color);
+  const dispatch = useDispatch();
+
+  /* Applying the <html class="dark"> swap synchronously here, before
+     dispatch, is what avoids the flash: any component reading `theme`
+     straight from the store re-renders with the new value in the same
+     commit as the click, while `dark:` Tailwind classes would otherwise
+     lag a tick behind if this only happened in a useEffect reacting to
+     the state change. Two update times for what should be one atomic
+     switch — same reasoning as the pre-Redux version of this file. */
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    applyThemeToDocument(next);
+    dispatch(toggleThemeAction());
+  };
+
+  const getThemeColor = () => color;
+
+  return { theme, toggleTheme, getThemeColor };
 }
