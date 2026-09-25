@@ -26,7 +26,7 @@ import { toast } from '../utils/toast.js';
 const GROUPS = [
   { name: 'Owner records', Icon: Users, labels: ['Owner base — names and units', 'Personal dates — DOB, anniversary', 'Consent record'] },
   { name: 'Financials', Icon: Wallet, labels: ['Payment ledger and outstanding', 'Unrealised gain and valuation', 'Change the valuation note'] },
-  { name: 'Scoring & engagement', Icon: TrendingUp, labels: ['Propensity score and segment', 'Engagement data — NPS, referrals, events, visits', 'Send a portfolio statement', 'Manage events and invite lists'] },
+  { name: 'Scoring & engagement', Icon: TrendingUp, labels: ['Propensity score and segment', 'Engagement data — NPS, referrals, events, visits', 'Send a portfolio statement', 'Manage events and invite lists', 'Manage leads and external complaints'] },
   { name: 'Risk & compliance', Icon: ShieldAlert, labels: ['Complaints and NCR references', 'Litigation flag and case notes', NON_OVERRIDABLE] },
   { name: 'Administration', Icon: Settings, labels: ['Owner status and transfer state', 'Export the base', MANAGE_USERS, 'Impersonate other user accounts'] },
   /* one row per sidebar page — whether the role sees it at all, not
@@ -36,7 +36,7 @@ const GROUPS = [
      other half of this. */
   { name: 'Modules — sidebar pages', Icon: Layers, labels: [
     'Module: Dashboard', 'Module: Owner base', 'Module: Trigger calendar', 'Module: Referral tree',
-    'Module: Events',
+    'Module: Events', 'Module: Leads',
     'Module: Portfolio statement', 'Module: Statement send log', 'Module: Intake & exceptions',
     'Module: Incomplete records', 'Module: Valuation register', 'Module: Exit register',
     'Module: Scoring engine', 'Module: Field dictionary', 'Module: Access & governance',

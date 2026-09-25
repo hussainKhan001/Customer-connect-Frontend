@@ -208,11 +208,12 @@ export default function Login() {
 
                   {/* Error Notification */}
                   {error && (
-                    <div className="p-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2 animate-bounce">
+                    <div className="p-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
                       <span>{error}</span>
                     </div>
                   )}
+
 
                   {/* Submit Button with Animated Hover Icon & Active Scaling */}
                   <div className="pt-2">

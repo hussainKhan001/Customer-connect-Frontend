@@ -8,7 +8,7 @@
 import { lazy } from 'react';
 import {
   LayoutDashboard, Users, IdCard, CalendarClock, GitBranch, Send,
-  Inbox, ClipboardList, LogOut, SlidersHorizontal, BookOpen, ShieldCheck, UserCog, FileWarning, Database, CalendarDays, History,
+  Inbox, ClipboardList, LogOut, SlidersHorizontal, BookOpen, FileWarning, CalendarDays, History, Settings as SettingsIcon, UserPlus,
 } from 'lucide-react';
 
 /* Route-level code splitting — each page ships as its own chunk,
@@ -26,6 +26,7 @@ const CustomerMaster = lazy(() => import('../pages/CustomerMaster.jsx'));
 const TriggerCalendar = lazy(() => import('../pages/TriggerCalendar.jsx'));
 const ReferralTree = lazy(() => import('../pages/ReferralTree.jsx'));
 const Events = lazy(() => import('../pages/Events.jsx'));
+const Leads = lazy(() => import('../pages/Leads.jsx'));
 const SendLog = lazy(() => import('../pages/SendLog.jsx'));
 const Intake = lazy(() => import('../pages/Intake.jsx'));
 const IncompleteRecords = lazy(() => import('../pages/IncompleteRecords.jsx'));
@@ -33,10 +34,8 @@ const ValuationRegister = lazy(() => import('../pages/ValuationRegister.jsx'));
 const ExitRegister = lazy(() => import('../pages/ExitRegister.jsx'));
 const ScoringEngine = lazy(() => import('../pages/ScoringEngine.jsx'));
 const FieldDictionary = lazy(() => import('../pages/FieldDictionary.jsx'));
-const AccessGovernance = lazy(() => import('../pages/AccessGovernance.jsx'));
-const UserManagement = lazy(() => import('../pages/UserManagement.jsx'));
-const MasterData = lazy(() => import('../pages/MasterData.tsx'));
 const AuditLog = lazy(() => import('../pages/AuditLog.jsx'));
+const Settings = lazy(() => import('../pages/Settings.jsx'));
 
 /* `path` is always the first URL segment for that page — master/statement
    additionally accept /:id and /:id/:tab, wired directly in App.jsx's
@@ -60,6 +59,9 @@ export const PAGES = [
   { id: 'events', path: 'events', group: 'Act', label: 'Events', Icon: CalendarDays,
     Component: Events, capability: 'Module: Events',
     title: 'Events', desc: 'Event Calendar & Owner Invite Lists' },
+  { id: 'leads', path: 'leads', group: 'Act', label: 'Leads', Icon: UserPlus,
+    Component: Leads, capability: 'Module: Leads',
+    title: 'Leads', desc: 'Website & Referral Inquiries, Plus Unmatched External Complaints' },
   { id: 'sendlog', path: 'sendlog', group: 'Act', label: 'Statement send log', Icon: Send,
     Component: SendLog, capability: 'Module: Statement send log',
     title: 'Statement Send Log', desc: 'Complete History of Sent Statements & Customer Engagement' },
@@ -81,18 +83,21 @@ export const PAGES = [
   { id: 'dict', path: 'dict', group: 'Build', label: 'Field dictionary', Icon: BookOpen,
     Component: FieldDictionary, capability: 'Module: Field dictionary',
     title: 'Field Dictionary', desc: 'Data Fields Schema & Governance Responsibilities' },
-  { id: 'access', path: 'access', group: 'Build', label: 'Access & governance', Icon: ShieldCheck,
-    Component: AccessGovernance, capability: 'Module: Access & governance',
-    title: 'Access & Governance', desc: 'Data Privacy Rules, PII Controls & Governance Policies' },
-  { id: 'users', path: 'users', group: 'Build', label: 'User management', Icon: UserCog,
-    Component: UserManagement, capability: 'Module: User management',
-    title: 'User Management', desc: 'System Roles, Capabilities & User Access Controls' },
-  { id: 'masterdata', path: 'masterdata', group: 'Build', label: 'Master data', Icon: Database,
-    Component: MasterData, capability: 'Module: Master data',
-    title: 'Master Data', desc: 'Projects, Occupations & Every Dropdown Option List' },
   { id: 'auditlog', path: 'auditlog', group: 'Build', label: 'Audit log', Icon: History,
     Component: AuditLog, capability: 'Module: Audit log',
     title: 'Audit Log', desc: 'Every Create, Update & Delete Across the System, by Who and When' },
+  /* consolidates what used to be three separate pages (User management,
+     Master data, Access & governance) into one hub — see Settings.jsx.
+     Gated on the same capability User management always was; each
+     section inside additionally checks its own specific one (a role
+     with e.g. Master data but not User management still only sees that
+     one section once inside, same layered enforcement every other
+     Module row already has). Deliberately excluded from App.jsx's
+     generic per-page <Route>, same as 'master' below — it needs a
+     second, nested route for /settings/:section. */
+  { id: 'settings', path: 'settings', group: 'Build', label: 'Settings', Icon: SettingsIcon,
+    Component: Settings, capability: 'Module: User management',
+    title: 'Settings', desc: 'Company Profile, Users, Roles, Access & Master Data — All in One Place' },
 ];
 
 export const pageById = (id) => PAGES.find((p) => p.id === id);

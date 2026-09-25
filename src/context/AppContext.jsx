@@ -283,7 +283,8 @@ export function AppProvider({ children }) {
 
   /* wipes every customer record — the same operation the one-off
      migration scripts were doing by hand all session, now a real
-     button (see UserManagement.jsx). Doesn't call patchCustomer since
+     button (see components/settings/CompanyProfileSection.jsx). Doesn't
+     call patchCustomer since
      there's no single updated record to fold back in; the realtime
      Change Stream listener picks up the resulting empty collection
      and refetches on its own, same as any other write. */

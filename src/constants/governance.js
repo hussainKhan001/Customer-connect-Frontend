@@ -90,6 +90,7 @@ export const CAPABILITIES = [
   'Owner status and transfer state',
   'Engagement data — NPS, referrals, events, visits',
   'Manage events and invite lists',
+  'Manage leads and external complaints',
   'User management — add/edit/deactivate accounts',
   'Impersonate other user accounts',
   /* one row per sidebar page — see backend/src/lib/permissions.js's
@@ -100,6 +101,7 @@ export const CAPABILITIES = [
   'Module: Trigger calendar',
   'Module: Referral tree',
   'Module: Events',
+  'Module: Leads',
   'Module: Portfolio statement',
   'Module: Statement send log',
   'Module: Intake & exceptions',

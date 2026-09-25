@@ -16,6 +16,11 @@ import { fmtD, TODAY } from './utils/core.js';
 import { PAGES, pageById } from './constants/navigation.js';
 
 const MasterPage = pageById('master').Component;
+const settingsEntry = pageById('settings');
+const SettingsPage = settingsEntry.Component;
+const settingsElement = settingsEntry.capability
+  ? <PageGate capability={settingsEntry.capability} label={settingsEntry.label}><SettingsPage /></PageGate>
+  : <SettingsPage />;
 
 /* Full-shell placeholder for the two top-level loading states */
 function ShellSkeleton() {
@@ -161,7 +166,7 @@ export default function App() {
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                   <Route path="/" element={<Navigate to="/command" replace />} />
-                  {PAGES.filter((p) => p.id !== 'master').map((p) => (
+                  {PAGES.filter((p) => p.id !== 'master' && p.id !== 'settings').map((p) => (
                     <Route key={p.id} path={p.path} element={
                       p.capability
                         ? <PageGate capability={p.capability} label={p.label}><p.Component /></PageGate>
@@ -171,6 +176,8 @@ export default function App() {
                   <Route path="master" element={<MasterPage />} />
                   <Route path="master/:id" element={<MasterPage />} />
                   <Route path="master/:id/:tab" element={<MasterPage />} />
+                  <Route path="settings" element={settingsElement} />
+                  <Route path="settings/:section" element={settingsElement} />
                   <Route path="*" element={<Navigate to="/command" replace />} />
                 </Routes>
               </Suspense>

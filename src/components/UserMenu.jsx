@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogOut, ShieldCheck, User, ChevronDown, Check, Search, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useAppNavigation } from '../hooks/useAppNavigation.js';
 import { initials } from '../utils/core.js';
 import { toast } from '../utils/toast.js';
 import { apiFetch } from '../utils/api.js';
@@ -11,7 +11,11 @@ const IMPERSONATE = 'Impersonate other user accounts';
 
 export default function UserMenu() {
   const { user, realUser, logout, impersonate, revertImpersonation, can } = useAuth();
-  const { navigateTo } = useAppNavigation();
+  /* useAppNavigation() only exposes openCustomer/openSegment (composite,
+     record-scoped actions) — a plain path like "/settings/users" is a
+     generic navigation these two profile-menu links need directly, so
+     react-router's own hook is the right tool here, not that one. */
+  const navigateTo = useNavigate();
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
   const [rect, setRect] = useState(null);
@@ -132,14 +136,14 @@ export default function UserMenu() {
           {/* Action Links Section */}
           <div className="p-1.5 sm:p-2 space-y-0.5 border-b border-gray-100 dark:border-gray-700/60">
             <button
-              onClick={() => { setOpen(false); navigateTo('/users'); }}
+              onClick={() => { setOpen(false); navigateTo('/settings/roles'); }}
               className="w-full flex items-center gap-2.5 sm:gap-3 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/80 rounded-lg text-left"
             >
               <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
               <span>{user.role}</span>
             </button>
             <button
-              onClick={() => { setOpen(false); navigateTo('/users'); }}
+              onClick={() => { setOpen(false); navigateTo('/settings/users'); }}
               className="w-full flex items-center gap-2.5 sm:gap-3 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/80 rounded-lg text-left"
             >
               <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />

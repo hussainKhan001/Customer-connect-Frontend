@@ -9,6 +9,7 @@ import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls } from '
 import Modal from './Modal.jsx';
 import ThemedSelect from './theme/ThemedSelect.jsx';
 import { toast, mutationErrorToast } from '../utils/toast.js';
+import { inrF } from '../utils/core.js';
 
 /* `unit.type` is one plain string in the database (see UnitSchema) —
    the nested Villa(+BHK)/Plot/Flat(+BHK)/Other picker is purely a
@@ -74,6 +75,14 @@ export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+
+  /* live preview only — the actual persisted value is recomputed
+     server-side the same way (saleable × rate − discount) the moment
+     this save lands, see the backend's /financials route. Shown so
+     "consideration" stops reading as a separate field nobody here can
+     fill in and starts reading as what it now is: derived from the two
+     fields right above it. */
+  const previewConsideration = Math.round((Number(draft.saleable) || 0) * (Number(draft.rate) || 0)) - (unit.discount || 0);
 
   const set = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
   const setVal = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
@@ -186,6 +195,12 @@ export default function UnitFinancialsModal({ customer, unitIndex, unit, onClose
           <label className={formLabelCls}>Rate paid (₹/sq.ft.)</label>
           <input type="number" min="0" value={draft.rate} onChange={set('rate')} className={formInputCls(!!errors.rate)} />
           {errors.rate && <div className={formErrorCls}>{errors.rate}</div>}
+        </div>
+        <div>
+          <label className={formLabelCls}>Consideration (auto-calculated)</label>
+          <div className={`${formInputCls(false)} bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-200 font-semibold cursor-not-allowed`}>
+            {previewConsideration > 0 ? inrF(previewConsideration) : '—'}
+          </div>
         </div>
       </div>
     </Modal>

@@ -10,7 +10,7 @@ import { CONFIRM_COLOR } from '../utils/toast.js';
 
 const kindTone = (k) => (k === 'money' ? 'g' : k === 'personal' ? 'm' : 'w');
 
-function Box({ title, list, openCustomer, ack, sendWhatsApp, messageTemplates }) {
+function Box({ title, list, openCustomer, ack, messageTemplates }) {
   const { getThemeColor } = useTheme();
   return (
     <Card title={title} hint={<span className="tabular-nums">{list.length}</span>} pad={false}>
@@ -71,41 +71,53 @@ function Box({ title, list, openCustomer, ack, sendWhatsApp, messageTemplates })
                 </div>
               )}
             </div>
-            {isDueToday && !template && (
-              /* no saved message for this trigger's category yet (Master
-                 Data → WhatsApp message templates) — same manual
-                 mark-handled flow this button always did, so nothing
-                 regresses before someone writes the templates. */
-              <button
-                onClick={(e) => { e.stopPropagation(); ack(x); }}
-                title="Checked — mark handled"
-                className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 "
-              >
-                <Check className="w-4 h-4" />
-              </button>
-            )}
-            {isDueToday && template && waHref && (
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => { e.stopPropagation(); sendWhatsApp(x); }}
-                title={`Opens WhatsApp for ${x.c.mobile}`}
-                className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10"
-              >
-                <span className="pointer-events-none flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4" />
-                </span>
-              </a>
-            )}
-            {isDueToday && template && !waHref && (
-              <button
-                onClick={(e) => { e.stopPropagation(); Swal.fire({ icon: 'warning', title: 'No mobile on record', text: "Add a mobile number to this owner's profile before sending a WhatsApp message." }); }}
-                title="No mobile on record"
-                className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10"
-              >
-                <MessageCircle className="w-4 h-4" />
-              </button>
+            {isDueToday && (
+              <div className="flex-shrink-0 flex items-center gap-1">
+                {/* opening WhatsApp and marking the trigger handled are two
+                   separate, explicit steps — this only ever opens the chat
+                   (or warns if there's nothing to open); it never marks
+                   anything done by itself. Only shown once there's an
+                   actual template for this category (Master Data →
+                   WhatsApp message templates) to send. */}
+                {template && (
+                  waHref ? (
+                    /* window.open() from a real click, not a plain <a
+                       target="_blank"> — same pattern as the Portfolio
+                       Statement drawer's and Invite list's own WhatsApp
+                       buttons. An anchor's target="_blank" still opens a
+                       second tab, but browsers are far more likely to
+                       leave it in the background; a script-driven open()
+                       inside a trusted click handler is what actually
+                       gets it to jump to the front. */
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); window.open(waHref, '_blank', 'noopener,noreferrer'); }}
+                      title={`Opens WhatsApp for ${x.c.mobile}`}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); Swal.fire({ icon: 'warning', title: 'No mobile on record', text: "Add a mobile number to this owner's profile before sending a WhatsApp message." }); }}
+                      title="No mobile on record"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
+                  )
+                )}
+                {/* the actual "handled" confirmation — always its own,
+                   separate click, whether or not a WhatsApp message was
+                   sent first. */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); ack(x); }}
+                  title="Checked — mark handled"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </li>
           );
@@ -138,14 +150,6 @@ export default function TriggerCalendar() {
     if (!isConfirmed) return;
     mutateCustomer(`/api/customers/${x.c.id}/trigger-acks`, { label: x.label, date: todayInput(), remark }, 'POST').catch(() => {});
   };
-  /* the WhatsApp icon's href already does the actual navigation (a
-     real <a>, not window.open() — see the same fix on the Portfolio
-     Statement's own Share on WhatsApp button for why); this just
-     records that it happened, no confirmation dialog in the way of
-     the one-click send the icon promises. */
-  const sendWhatsApp = (x) => {
-    mutateCustomer(`/api/customers/${x.c.id}/trigger-acks`, { label: x.label, date: todayInput(), remark: 'Sent via WhatsApp template' }, 'POST').catch(() => {});
-  };
   const nf = nextFest();
   const bk = (lo, hi) => t.filter((x) => x.days >= lo && x.days <= hi);
   const blocked = base.filter((c) => c._blocked).length;
@@ -160,9 +164,9 @@ export default function TriggerCalendar() {
       </Banner>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Box title="Next 7 days" list={bk(0, 7)} openCustomer={openCustomer} ack={ack} sendWhatsApp={sendWhatsApp} messageTemplates={masterData.messageTemplates} />
-        <Box title="8 – 30 days" list={bk(8, 30)} openCustomer={openCustomer} ack={ack} sendWhatsApp={sendWhatsApp} messageTemplates={masterData.messageTemplates} />
-        <Box title="31 – 90 days" list={bk(31, 90)} openCustomer={openCustomer} ack={ack} sendWhatsApp={sendWhatsApp} messageTemplates={masterData.messageTemplates} />
+        <Box title="Next 7 days" list={bk(0, 7)} openCustomer={openCustomer} ack={ack} messageTemplates={masterData.messageTemplates} />
+        <Box title="8 – 30 days" list={bk(8, 30)} openCustomer={openCustomer} ack={ack} messageTemplates={masterData.messageTemplates} />
+        <Box title="31 – 90 days" list={bk(31, 90)} openCustomer={openCustomer} ack={ack} messageTemplates={masterData.messageTemplates} />
       </div>
     </>
   );

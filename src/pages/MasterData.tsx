@@ -31,7 +31,7 @@ import type { Project, Occupation } from '../types/masterData';
    this pilot slice) — cast once here at the import boundary. */
 const useApp = useAppUntyped as () => { masterData: any };
 const useAuth = useAuthUntyped as () => { can: (permission: string) => boolean };
-const { Card, Banner, TableWrap, rowActionCls, EmptyState, th, td, trRowCls } = UiModule as any;
+const { Card, TableWrap, rowActionCls, EmptyState, th, td, trRowCls } = UiModule as any;
 const StringListEditor = StringListEditorUntyped as any;
 const MessageTemplateEditor = MessageTemplateEditorUntyped as any;
 const OccupationEditorModal = OccupationEditorModalUntyped as any;
@@ -45,6 +45,23 @@ const STRING_LISTS: [string, string, string][] = [
   ['callOutcomes', 'Call outcome', 'Add an outcome…'],
 ];
 
+/* the five logical groups this page holds, as their own sub-tabs
+   instead of one long stacked scroll — mirrors Customer Master's own
+   tab bar for a multi-section page. */
+const TABS: [string, string][] = [
+  ['projects', 'Projects'],
+  ['occupations', 'Occupations'],
+  ['lists', 'Dropdown lists'],
+  ['documents', 'Document checklist'],
+  ['templates', 'WhatsApp templates'],
+];
+const tabCls = (on: boolean) =>
+  `px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+    on
+      ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+  }`;
+
 const MODULE = 'Module: Master data';
 
 export default function MasterData() {
@@ -54,6 +71,7 @@ export default function MasterData() {
   const [savingField, setSavingField] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
   const [editingOcc, setEditingOcc] = useState<Partial<Occupation> | null>(null);
+  const [tab, setTab] = useState<string>('projects');
 
   /* the whole page is a write surface — there's no read-only view of
      Master Data distinct from editing it — so this gates entry to the
@@ -163,12 +181,15 @@ export default function MasterData() {
 
   return (
     <>
-      <Banner kind="info">
-        <b>Changes here apply everywhere, immediately</b> — every dropdown in the app (Owner Base filters,
-        Intake, Edit unit, Complete profile, Log a call…) reads these same lists. Removing an option never
-        touches an owner who already has it on record; it just stops being offered on the next new entry.
-      </Banner>
+      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit flex-wrap">
+        {TABS.map(([key, label]) => (
+          <button key={key} className={tabCls(tab === key)} onClick={() => setTab(key)}>
+            {label}
+          </button>
+        ))}
+      </div>
 
+      {tab === 'projects' && (
       <Card
         title="Projects"
         hint={
@@ -222,7 +243,9 @@ export default function MasterData() {
           </table>
         </TableWrap>
       </Card>
+      )}
 
+      {tab === 'occupations' && (
       <Card
         title="Occupations"
         hint={
@@ -267,7 +290,9 @@ export default function MasterData() {
           </table>
         </TableWrap>
       </Card>
+      )}
 
+      {tab === 'lists' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {STRING_LISTS.map(([field, label, placeholder]) => (
           <StringListEditor
@@ -281,7 +306,10 @@ export default function MasterData() {
           />
         ))}
       </div>
+      )}
 
+      {tab === 'documents' && (
+      <>
       <div>
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">Document checklist, by property type</h2>
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
@@ -302,7 +330,11 @@ export default function MasterData() {
           />
         ))}
       </div>
+      </>
+      )}
 
+      {tab === 'templates' && (
+      <>
       <div>
         <h2 className="text-sm font-bold text-gray-900 dark:text-white">WhatsApp message templates</h2>
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
@@ -321,6 +353,8 @@ export default function MasterData() {
           />
         ))}
       </div>
+      </>
+      )}
 
       {editingProject && (
         <ProjectEditorModal
