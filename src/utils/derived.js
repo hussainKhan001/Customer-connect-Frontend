@@ -351,19 +351,62 @@ export function docsFor(c, documentTemplates = {}) {
   };
 
   const d = [];
+  const expectedKeys = new Set();
   c.units.forEach((u) => {
+    const label = u.unit || 'no unit number yet';
+    /* genuinely never captured (not just an unusual value) — showing
+       the generic "Other" checklist in that case used to read as a
+       real answer ("this owner needs a Sale Deed") when it was
+       actually just a fallback for missing data. Say so instead. */
+    if (!String(u.type || '').trim()) {
+      d.push({ key: `notype-${u.unit || 'noNumber'}`, n: label, unit: label, type: null, ok: null, d: null, noType: true });
+      return;
+    }
     const top = topPropertyType(u.type);
     const docTypes = documentTemplates[top]?.length ? documentTemplates[top] : (documentTemplates.Other || []);
-    const label = u.unit || 'no unit number yet';
     docTypes.forEach((docType) => {
-      d.push(row(`${slug(docType)}-${u.unit || 'noNumber'}`, `${docType} — ${label}`, label, docType));
+      const key = `${slug(docType)}-${u.unit || 'noNumber'}`;
+      expectedKeys.add(key);
+      d.push(row(key, `${docType} — ${label}`, label, docType));
     });
-    if (u.exited) d.push(row(`transfer-${u.unit || 'noNumber'}`, 'Transfer deed (third party) — ' + label, label, 'Transfer deed (third party)'));
+    if (u.exited) {
+      const key = `transfer-${u.unit || 'noNumber'}`;
+      expectedKeys.add(key);
+      d.push(row(key, 'Transfer deed (third party) — ' + label, label, 'Transfer deed (third party)'));
+    }
   });
   if (c.status === 'TRANSFER_IN_PROGRESS') {
+    expectedKeys.add('succession');
     d.push(row('succession', 'Succession / transfer papers', null, 'Succession / transfer papers'));
+    expectedKeys.add('kyc-nominee');
     d.push(row('kyc-nominee', 'KYC — nominee', null, 'KYC — nominee'));
   }
+
+  /* documents genuinely on file that don't match any row above — most
+     often a Master Data checklist label got renamed (or a type's
+     checklist changed) after these were already uploaded/linked, which
+     otherwise makes a real, on-record document silently vanish from
+     view rather than just showing under a name that no longer matches
+     the current checklist. Grouped under whichever unit the key's own
+     "-<unit>" suffix names, so it still lands in the right section
+     instead of an unexplained separate pile. */
+  const seenOrphanKeys = new Set();
+  (c.documents || []).forEach((doc) => {
+    if (expectedKeys.has(doc.key) || seenOrphanKeys.has(doc.key)) return;
+    seenOrphanKeys.add(doc.key);
+    const unit = c.units.find((u) => u.unit && doc.key.endsWith(`-${u.unit}`));
+    const label = unit ? (unit.unit || 'no unit number yet') : null;
+    d.push({
+      key: doc.key,
+      n: `Other document on file — ${label || 'owner-level'}`,
+      unit: label,
+      type: 'Other document on file',
+      ok: true,
+      d: doc.uploadedAt || null,
+      orphan: true,
+    });
+  });
+
   return d;
 }
 

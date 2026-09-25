@@ -24,7 +24,7 @@ export default function MDocuments({ c }) {
   const pagesFor = (key) => (c.documents || [])
     .filter((x) => x.key === key)
     .sort((a, b) => (a.page || 0) - (b.page || 0) || new Date(a.uploadedAt) - new Date(b.uploadedAt));
-  const miss = d.filter((x) => !x.ok);
+  const miss = d.filter((x) => !x.noType && !x.ok);
 
   /* one section per unit, in the order units already appear on the
      owner, plus a trailing section for owner-level rows (succession/
@@ -136,8 +136,10 @@ export default function MDocuments({ c }) {
     }
   };
 
+  const checklistItems = d.filter((x) => !x.noType);
+
   return (
-    <Card title="Document vault" hint={`${d.length - miss.length} of ${d.length} on file`}>
+    <Card title="Document vault" hint={`${checklistItems.length - miss.length} of ${checklistItems.length} on file`}>
       <input ref={fileRef} type="file" accept="application/pdf,image/jpeg,image/png" multiple className="hidden" onChange={onFile} />
       <div className="space-y-5">
         {groups.map((group) => (
@@ -145,6 +147,12 @@ export default function MDocuments({ c }) {
             <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
               {group.label}
             </div>
+            {group.items.some((x) => x.noType) ? (
+              <Banner kind="warn">
+                This unit's property type hasn't been set yet, so there's no document checklist to show —
+                set it on the unit (Portfolio tab → edit unit) to see what's expected here.
+              </Banner>
+            ) : (
             <TableWrap>
               <table className="w-full border-collapse">
                 <tbody>
@@ -154,6 +162,11 @@ export default function MDocuments({ c }) {
                       <tr key={x.key}>
                         <td className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 align-top text-sm whitespace-nowrap">
                           <Dot tone={x.ok ? 'g' : 'r'} />{x.type}
+                          {x.orphan && (
+                            <span className="ml-1.5 text-[10.5px] text-amber-600 dark:text-amber-400" title="On file under a document type that no longer matches this unit's current checklist">
+                              (unmatched type)
+                            </span>
+                          )}
                           {pages.length > 1 && (
                             <span className="ml-1.5 text-[10.5px] text-gray-400 dark:text-gray-500">({pages.length} pages)</span>
                           )}
@@ -190,6 +203,7 @@ export default function MDocuments({ c }) {
                 </tbody>
               </table>
             </TableWrap>
+            )}
           </div>
         ))}
       </div>
