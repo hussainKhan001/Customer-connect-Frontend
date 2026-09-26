@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 import Swal from 'sweetalert2';
-import { Card, Chip, Banner, Row, KV, Timeline, TableWrap, rowActionCls, formLabelCls, formInputCls, Req } from '../../components/Ui.jsx';
+import { Card, Chip, Banner, Row, KV, Timeline, TableWrap, rowActionCls, formLabelCls, formInputCls, Req, EmptyState } from '../../components/Ui.jsx';
 import { useApp } from '../../context/AppContext.jsx';
 import ThemedDate from '../../components/theme/ThemedDate.jsx';
 import { fmtD, todayInput } from '../../utils/core.js';
@@ -9,9 +9,21 @@ import { toast, CONFIRM_COLOR } from '../../utils/toast.js';
 import ReferralModal from '../../components/ReferralModal.jsx';
 import EventModal from '../../components/EventModal.jsx';
 import ComplaintModal from '../../components/ComplaintModal.jsx';
+import { useEvents } from '../../hooks/useEvents.js';
+import { CalendarDays, Check } from 'lucide-react';
 
 export default function MRelationship({ c }) {
   const { mutateCustomer } = useApp();
+  const { events } = useEvents();
+  /* the invite-list system (Events page) is a separate collection from
+     this owner's own `events`/siteVisits counters above — this cross-
+     references it so "which events was THIS owner invited to, and did
+     they attend" shows up here instead of only being visible from the
+     Events page's own per-event drawer. */
+  const myEvents = (events || [])
+    .map((ev) => ({ ev, invite: ev.invites.find((i) => i.customerId === c.id) }))
+    .filter((x) => x.invite)
+    .sort((a, b) => new Date(b.ev.date) - new Date(a.ev.date));
   const hasOpenRef = c.referrals.some((x) => x.status.startsWith('Open'));
   const avgClose = c.complaints.length
     ? Math.round(c.complaints.reduce((s, x) => s + x.days, 0) / c.complaints.length) + ' days'
@@ -291,6 +303,48 @@ export default function MRelationship({ c }) {
               ))}
             </Timeline>
           </div>
+        )}
+      </Card>
+
+      <Card title="Event invitations" hint={events ? `${myEvents.length} of ${events.length} events` : ''}>
+        {!events ? (
+          <div className="text-xs text-gray-500 dark:text-gray-400">Loading…</div>
+        ) : myEvents.length === 0 ? (
+          <EmptyState icon={CalendarDays} title="Not invited to any events yet." />
+        ) : (
+          <TableWrap>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-3 py-2 border-b border-gray-100 dark:border-gray-700/60">Event</th>
+                  <th className="text-left text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-3 py-2 border-b border-gray-100 dark:border-gray-700/60">Date</th>
+                  <th className="text-left text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-3 py-2 border-b border-gray-100 dark:border-gray-700/60">Invited by</th>
+                  <th className="text-center text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-bold px-3 py-2 border-b border-gray-100 dark:border-gray-700/60">Attended</th>
+                </tr>
+              </thead>
+              <tbody>
+                {myEvents.map(({ ev, invite }) => (
+                  <tr key={ev.id} className="border-b border-gray-100 dark:border-gray-700/60 last:border-0">
+                    <td className="px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white">{ev.name}</td>
+                    <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{fmtD(ev.date)}</td>
+                    <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{invite.invitedBy || '—'}</td>
+                    <td className="px-3 py-2 text-center">
+                      <div
+                        className={`w-5 h-5 rounded border-2 inline-flex items-center justify-center ${
+                          invite.attended
+                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-transparent'
+                        }`}
+                        title={invite.attended ? 'Attended' : 'Did not attend'}
+                      >
+                        <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
         )}
       </Card>
 

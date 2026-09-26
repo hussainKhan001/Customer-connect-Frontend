@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { Plus, Pencil, Trash2, CalendarDays, MapPin, Users } from 'lucide-react';
 import { Card, Chip, Banner, TableWrap, BtnPrimary, tableIconBtnCls, EmptyState } from '../components/Ui.jsx';
 import EventFormModal from '../components/EventFormModal.jsx';
+import EventDetailDrawer from '../components/EventDetailDrawer.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useEvents } from '../hooks/useEvents.js';
 import { apiFetch } from '../utils/api.js';
@@ -24,6 +25,7 @@ export default function Events() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [viewing, setViewing] = useState(null);
 
   const canManage = can(MANAGE);
 
@@ -109,7 +111,7 @@ export default function Events() {
               {(events || []).map((ev) => {
                 const d = daysTo(ev.date);
                 return (
-                  <tr key={ev.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                  <tr key={ev.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer" onClick={() => setViewing(ev)} title="Open invite list">
                     <td className={td}>
                       <div className="font-bold text-gray-900 dark:text-white">{ev.name}</div>
                       {ev.description && <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 max-w-md">{ev.description}</div>}
@@ -132,10 +134,10 @@ export default function Events() {
                     {canManage && (
                       <td className={`${td} text-right`}>
                         <div className="inline-flex items-center gap-1">
-                          <button className={tableIconBtnCls('primary')} title="Edit event" onClick={() => { setEditing(ev); setFormOpen(true); }}>
+                          <button className={tableIconBtnCls('primary')} title="Edit event" onClick={(e) => { e.stopPropagation(); setEditing(ev); setFormOpen(true); }}>
                             <Pencil className="w-4 h-4" />
                           </button>
-                          <button className={tableIconBtnCls('red')} title="Delete event" onClick={() => remove(ev)} disabled={busyId === ev.id}>
+                          <button className={tableIconBtnCls('red')} title="Delete event" onClick={(e) => { e.stopPropagation(); remove(ev); }} disabled={busyId === ev.id}>
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -161,6 +163,18 @@ export default function Events() {
             next[idx] = saved;
             return next;
           })}
+        />
+      )}
+
+      {viewing && (
+        <EventDetailDrawer
+          event={viewing}
+          canManage={canManage}
+          onClose={() => setViewing(null)}
+          onUpdated={(updated) => {
+            setViewing(updated);
+            setEvents((prev) => (prev || []).map((x) => (x.id === updated.id ? updated : x)));
+          }}
         />
       )}
     </>

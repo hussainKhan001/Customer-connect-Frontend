@@ -22,6 +22,17 @@ const settingsElement = settingsEntry.capability
   ? <PageGate capability={settingsEntry.capability} label={settingsEntry.label}><SettingsPage /></PageGate>
   : <SettingsPage />;
 
+/* Shown only while we don't yet know if there's a session at all — a
+   fake sidebar/dashboard here would be presumptuous (and just flashes
+   past on the way to the Login page for every logged-out visit), so
+   this stays neutral instead of implying an app shell that may never
+   render. ShellSkeleton (below) is for the OTHER loading state, once
+   we already know a real app shell is coming — there, showing its
+   shape is honest, not presumptuous. */
+function AuthLoadingScreen() {
+  return <div className="h-screen w-screen bg-[#d7d8dc] dark:bg-[#0b0f19]" />;
+}
+
 /* Full-shell placeholder for the two top-level loading states */
 function ShellSkeleton() {
   return (
@@ -78,7 +89,7 @@ export default function App() {
     else setCollapsed((c) => !c);
   };
 
-  if (authLoading) return <ShellSkeleton />;
+  if (authLoading) return <AuthLoadingScreen />;
 
   if (!user) return <Login />;
 

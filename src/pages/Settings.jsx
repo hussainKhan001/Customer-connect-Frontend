@@ -33,11 +33,15 @@ const MANAGE_USERS_MODULE = 'Module: User management';
    under, `capability` decides whether it shows at all (each section
    still enforces the same capability itself server-side; this is only
    the same UX-convenience layer every other page's Module row already
-   is — see PermissionGate's own comment in Ui.jsx). */
+   is — see PermissionGate's own comment in Ui.jsx). Company profile,
+   Users and Roles each have their OWN capability (previously all three
+   shared MANAGE_USERS_MODULE, from when they were one page's internal
+   tab switcher) so a role/user can be handed exactly one of the three
+   tabs without the other two coming along for free. */
 const SECTION_DEFS = [
-  { key: 'company', label: 'Company profile', group: 'Account', Icon: Building2, capability: MANAGE_USERS_MODULE },
+  { key: 'company', label: 'Company profile', group: 'Account', Icon: Building2, capability: 'Module: Company profile' },
   { key: 'users', label: 'Users', group: 'Team & access', Icon: UsersIcon, capability: MANAGE_USERS_MODULE },
-  { key: 'roles', label: 'Roles', group: 'Team & access', Icon: KeyRound, capability: MANAGE_USERS_MODULE },
+  { key: 'roles', label: 'Roles', group: 'Team & access', Icon: KeyRound, capability: 'Module: Roles' },
   { key: 'governance', label: 'Access & governance', group: 'Team & access', Icon: ShieldCheck, capability: 'Module: Access & governance' },
   { key: 'masterdata', label: 'Master data', group: 'Workspace', Icon: Database, capability: 'Module: Master data' },
 ];

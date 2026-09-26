@@ -9,6 +9,15 @@ export const fetchMe = createAsyncThunk('auth/fetchMe', async () => {
   const r = await apiFetch('/api/auth/me');
   const body = r.ok ? await r.json() : null;
   return { user: body?.user ?? null, realUser: body?.realUser ?? null };
+}, {
+  /* React's <StrictMode> (main.jsx) intentionally double-invokes mount
+     effects in dev to surface impure ones — harmless here (GET is
+     idempotent) but it fires this exact session-restore request twice
+     on every load, which shows up as a spurious extra 401 in the
+     console when logged out. `condition` is RTK's built-in guard for
+     "don't dispatch a second time if one's already in flight or done" —
+     skips the duplicate instead of only masking it in the UI. */
+  condition: (_, { getState }) => !getState().auth.meRequested,
 });
 
 export const login = createAsyncThunk('auth/login', async ({ email, password }) => {
@@ -63,10 +72,13 @@ export const revertImpersonation = createAsyncThunk('auth/revertImpersonation', 
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState: { user: null, realUser: null, authLoading: true },
+  initialState: { user: null, realUser: null, authLoading: true, meRequested: false },
   reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(fetchMe.pending, (state) => {
+        state.meRequested = true;
+      })
       .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.realUser = action.payload.realUser;

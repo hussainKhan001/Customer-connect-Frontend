@@ -2,6 +2,7 @@
    REFERENCE — the field dictionary and the access matrix. Static tables
    that document the system rather than drive it.
    ===================================================================== */
+import { Users, Wallet, TrendingUp, ShieldAlert, Settings, Layers } from 'lucide-react';
 
 /* [db field, on screen, type, source, capture owner, required, pii, note] */
 export const DICT = [
@@ -112,6 +113,8 @@ export const CAPABILITIES = [
   'Module: Field dictionary',
   'Module: Access & governance',
   'Module: User management',
+  'Module: Company profile',
+  'Module: Roles',
   'Module: Master data',
   'Module: Audit log',
 ];
@@ -147,3 +150,45 @@ export const GRANTABLE = CAPABILITIES.filter((c) => c !== NON_OVERRIDABLE);
 
 export const openCount = (permissions) =>
   GRANTABLE.filter((c) => (permissions || {})[c] && permissions[c] !== 'N').length;
+
+/* Shared grouping for BOTH the per-role matrix (RolePermissionsModal)
+   and the per-user override editor (UserPermissionsModal) — the same
+   "which functional area" organization applies whether you're setting
+   a whole role's defaults or one person's exceptions to it, so this is
+   defined once rather than risking the two screens' groupings drifting
+   apart. Purely a display grouping — the capabilities themselves are
+   still one flat, fixed list enforced on real routes (see
+   backend/src/lib/permissions.js). Every CAPABILITIES entry must appear
+   in exactly one group — checked once, below, rather than trusted. */
+export const PERMISSION_GROUPS = [
+  { name: 'Owner records', Icon: Users, labels: ['Owner base — names and units', 'Personal dates — DOB, anniversary', 'Consent record'] },
+  { name: 'Financials', Icon: Wallet, labels: ['Payment ledger and outstanding', 'Unrealised gain and valuation', 'Change the valuation note'] },
+  { name: 'Scoring & engagement', Icon: TrendingUp, labels: ['Propensity score and segment', 'Engagement data — NPS, referrals, events, visits', 'Send a portfolio statement', 'Manage events and invite lists', 'Manage leads and external complaints'] },
+  { name: 'Risk & compliance', Icon: ShieldAlert, labels: ['Complaints and NCR references', 'Litigation flag and case notes', NON_OVERRIDABLE] },
+  { name: 'Administration', Icon: Settings, labels: ['Owner status and transfer state', 'Export the base', MANAGE_USERS, 'Impersonate other user accounts'] },
+  /* one row per sidebar page/tab — whether the person sees it at all,
+     not whether an action inside it works (that's every group above).
+     See constants/navigation.js's `capability` field and
+     backend/src/lib/permissions.js's MODULE_CAPABILITIES for the other
+     half of this. Company profile/Users/Roles are separate rows (used
+     to share one) so any one of Settings' three account/team tabs can
+     be handed out without the other two. */
+  { name: 'Modules — sidebar pages', Icon: Layers, labels: [
+    'Module: Dashboard', 'Module: Owner base', 'Module: Trigger calendar', 'Module: Referral tree',
+    'Module: Events', 'Module: Leads',
+    'Module: Portfolio statement', 'Module: Statement send log', 'Module: Intake & exceptions',
+    'Module: Incomplete records', 'Module: Valuation register', 'Module: Exit register',
+    'Module: Scoring engine', 'Module: Field dictionary', 'Module: Access & governance',
+    'Module: User management', 'Module: Company profile', 'Module: Roles',
+    'Module: Master data', 'Module: Audit log',
+  ] },
+];
+if (import.meta.env.DEV) {
+  const grouped = PERMISSION_GROUPS.flatMap((g) => g.labels);
+  const missing = CAPABILITIES.filter((c) => !grouped.includes(c));
+  const extra = grouped.filter((c) => !CAPABILITIES.includes(c));
+  if (missing.length || extra.length) {
+    // eslint-disable-next-line no-console
+    console.error('governance.js: PERMISSION_GROUPS/CAPABILITIES mismatch', { missing, extra });
+  }
+}
