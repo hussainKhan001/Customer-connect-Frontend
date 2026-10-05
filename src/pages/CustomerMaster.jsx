@@ -23,35 +23,8 @@ import { STATUSLBL } from '../constants/segments.js';
 import { apiFetch } from '../utils/api.js';
 import { toast } from '../utils/toast.js';
 
-import MOverview from './master/MOverview.jsx';
-import MPortfolio from './master/MPortfolio.jsx';
-import MInvestor from './master/MInvestor.jsx';
-import MLedger from './master/MLedger.jsx';
-import MRelationship from './master/MRelationship.jsx';
-import MFollowUps from './master/MFollowUps.jsx';
-import MDocuments from './master/MDocuments.jsx';
-import MActivity from './master/MActivity.jsx';
-import MGovernance from './master/MGovernance.jsx';
-import MAuditLog from './master/MAuditLog.jsx';
-
-/* an optional 3rd element gates the tab behind a capability — same as
-   PAGES' own `capability` field in navigation.js. Audit log shares the
-   exact row the global Audit Log page uses ('Module: Audit log'), so
-   whoever can see the system-wide trail can see this owner-scoped
-   slice of it, and nobody else gets a tab pointing at a route they'd
-   just get a 403 from. */
-const CTABS = [
-  ['overview', 'Overview'], ['portfolio', 'Portfolio'], ['investor', 'Investor'], ['ledger', 'Ledger'],
-  ['relationship', 'Relationship'], ['followups', 'Timeline'],
-  ['documents', 'Documents'], ['activity', 'Activity log'], ['governance', 'Consent & gate'],
-  ['audit', 'Audit log', 'Module: Audit log'],
-];
-
-const TAB_VIEWS = {
-  overview: MOverview, portfolio: MPortfolio, investor: MInvestor, ledger: MLedger,
-  relationship: MRelationship, followups: MFollowUps, documents: MDocuments,
-  activity: MActivity, governance: MGovernance, audit: MAuditLog,
-};
+import { CTABS, TAB_VIEWS } from './master/tabs.js';
+import MemberProfileDrawer from '../components/MemberProfileDrawer.jsx';
 
 /* short chip labels for confidence()'s full sentence-length checks
    (see derived.js) — the full wording still shows on hover via the
@@ -84,6 +57,7 @@ export default function CustomerMaster() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [statementOpen, setStatementOpen] = useState(false);
   const [familyGroupOpen, setFamilyGroupOpen] = useState(false);
+  const [viewMember, setViewMember] = useState(null);
 
   /* land on the strongest Segment A record when nobody has been picked */
   const fallback = base.find((c) => c._seg === 'A') || base[0];
@@ -184,6 +158,19 @@ export default function CustomerMaster() {
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-3.5 space-y-3.5">
+            {/* surfaced first and visually distinct (accent border, tinted
+               header) rather than buried below the stat grid — a family
+               group is a standing fact about this owner worth noticing at
+               a glance, not just another card in the scroll. */}
+            <FamilyGroupCard
+              c={c}
+              base={base}
+              canManage={can('Manage family groups')}
+              onManage={() => setFamilyGroupOpen(true)}
+              onRemoved={(updated) => patchCustomer(updated)}
+              onViewMember={setViewMember}
+            />
+
             <NextFollowUpCard c={c} />
 
             <div className="grid grid-cols-2 gap-2">
@@ -194,14 +181,6 @@ export default function CustomerMaster() {
               <Stat label="Value today" v={c._live ? inrF(r.value) : '—'} />
               <Stat label="Unrealised gain" v={c._live ? inrF(r.gain) : '—'} tone="g" />
             </div>
-
-            <FamilyGroupCard
-              c={c}
-              base={base}
-              canManage={can('Manage family groups')}
-              onManage={() => setFamilyGroupOpen(true)}
-              onRemoved={(updated) => patchCustomer(updated)}
-            />
 
             <Rail c={c} cf={cf} weights={weights} onEditProfile={() => setEditOpen(true)} />
           </div>
@@ -265,6 +244,7 @@ export default function CustomerMaster() {
           onLinked={(groupId) => patchCustomer({ ...c, familyGroupId: groupId })}
         />
       )}
+      {viewMember && <MemberProfileDrawer customer={viewMember} onClose={() => setViewMember(null)} />}
     </>
   );
 }
@@ -326,14 +306,24 @@ function NextFollowUpCard({ c }) {
    page already has. Renders nothing at all if this owner isn't in a
    group and the viewer can't create one — not an empty card for
    something that doesn't apply. */
-function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
+function FamilyGroupCard({ c, base, canManage, onManage, onRemoved, onViewMember }) {
   const { group } = useFamilyGroup(c.familyGroupId);
-  const navigate = useNavigate();
   const [busyId, setBusyId] = useState(null);
+
+  /* accent left border + an icon baked into the title on every branch
+     below — this card sits first in the sidebar scroll specifically so
+     a family group reads as a standing, noticeable fact about this
+     owner, not just another card to scroll past. */
+  const accentCls = 'border-l-4 border-l-primary-500 dark:border-l-primary-500';
+  const titleWithIcon = (t) => (
+    <span className="inline-flex items-center gap-1.5">
+      <Users className="w-3.5 h-3.5 text-primary-500" /> {t}
+    </span>
+  );
 
   if (!c.familyGroupId) {
     return canManage ? (
-      <Card title="Family group">
+      <Card title={titleWithIcon('Family group')} className={accentCls}>
         <button
           className={`${btnGhost} w-full text-xs inline-flex items-center justify-center gap-1.5`}
           onClick={onManage}
@@ -380,8 +370,9 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
 
   return (
     <Card
-      title={group?.name || 'Family group'}
+      title={titleWithIcon(group?.name || 'Family group')}
       hint={`${members.length} member${members.length === 1 ? '' : 's'} · ${totalUnits} unit${totalUnits === 1 ? '' : 's'}`}
+      className={accentCls}
     >
       <div className="grid grid-cols-2 gap-2 mb-3">
         <Stat label="Combined consideration" v={inrF(combined.consideration)} />
@@ -391,35 +382,49 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
         <Stat label="Combined unrealised gain" v={inrF(combined.gain)} tone="g" />
       </div>
       <div className="space-y-1">
-        {members.map((m) => (
-          <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0">
-            <button
-              onClick={() => navigate(`/master/${m.id}/overview`)}
-              className="flex items-center gap-1.5 text-left min-w-0 flex-1 group"
-              title={`Open ${displayName(m)}'s customer master`}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={`text-xs font-semibold truncate group-hover:underline ${m.id === c.id ? 'text-primary-600 dark:text-primary-400' : 'text-gray-800 dark:text-gray-100'}`}>
-                    {displayName(m)}{m.id === c.id ? ' (this page)' : ''}
+        {members.map((m) => {
+          const isRoot = m.id === c.id;
+          const nameRow = (
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={`text-xs font-semibold truncate ${!isRoot ? 'group-hover:underline' : ''} ${isRoot ? 'text-primary-600 dark:text-primary-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                  {displayName(m)}{isRoot ? ' (this page)' : ''}
+                </span>
+                {m.familyGroupRelation && (
+                  <span className="flex-shrink-0 text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                    {m.familyGroupRelation}
                   </span>
-                  {m.familyGroupRelation && (
-                    <span className="flex-shrink-0 text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                      {m.familyGroupRelation}
-                    </span>
-                  )}
-                </div>
-                <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                  {m._live} unit{m._live === 1 ? '' : 's'}{m.units.length ? ` · ${m.units.map((u) => u.unit || '—').join(', ')}` : ''}
-                </div>
+                )}
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-primary-500 flex-shrink-0" />
-            </button>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                {m._live} unit{m._live === 1 ? '' : 's'}{m.units.length ? ` · ${m.units.map((u) => u.unit || '—').join(', ')}` : ''}
+              </div>
+            </div>
+          );
+          return (
+          <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0">
+            {/* the root owner (this page) has nothing to open — they're
+               already what's showing. Every other member opens their own
+               full Customer Master in a drawer, laid over this page
+               (MemberProfileDrawer, reusing the exact same tab set) —
+               root owner/URL stays exactly as-is underneath. */}
+            {isRoot ? (
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">{nameRow}</div>
+            ) : (
+              <button
+                onClick={() => onViewMember(m)}
+                className="flex items-center gap-1.5 text-left min-w-0 flex-1 group"
+                title={`Open ${displayName(m)}'s customer master`}
+              >
+                {nameRow}
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-primary-500 flex-shrink-0" />
+              </button>
+            )}
             {/* the page's own owner can't be removed from here — that's
                a self-removal, which reads as the whole card vanishing
                out from under the page you're looking at. Remove them
                from a fellow member's page instead. */}
-            {canManage && m.id !== c.id && (
+            {canManage && !isRoot && (
               <button
                 className="text-[10px] font-semibold text-red-500 hover:text-red-600 dark:text-red-400 flex-shrink-0 disabled:opacity-40"
                 onClick={() => removeMember(m.id)}
@@ -430,7 +435,8 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
       {canManage && (
         <button
