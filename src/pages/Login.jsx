@@ -24,7 +24,11 @@ export default function Login() {
       await login(email.trim(), password);
       navigate('/command', { replace: true });
     } catch (err) {
-      setError(err.message || 'Invalid credentials. Please try again.');
+      /* same defensive guard as the thunk itself — whatever actually
+         threw, only ever show readable text, never a stray boolean or
+         object coerced into something like the literal word "true". */
+      const msg = typeof err?.message === 'string' && err.message.trim() ? err.message : 'Could not sign in. Please check your details and try again.';
+      setError(msg);
     } finally {
       setSubmitting(false);
     }

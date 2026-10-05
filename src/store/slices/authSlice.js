@@ -33,7 +33,15 @@ export const login = createAsyncThunk('auth/login', async ({ email, password }) 
      just trying to sign in. */
   const body = await res.json().catch(() => null);
   if (!body) throw new Error('Could not reach the server — it may be waking up after being idle. Please try again in a few seconds.');
-  if (!res.ok) throw new Error(body.error || 'Sign-in failed');
+  /* `body.error` is only ever trusted as the message when it's an actual
+     non-empty string — a malformed/unexpected response shape (e.g. a
+     boolean, or an error key that's missing) must still read as plain
+     English, not get coerced into literal text like "true" by Error()'s
+     own string conversion of whatever it's handed. */
+  if (!res.ok) {
+    const msg = typeof body.error === 'string' && body.error.trim() ? body.error : 'Invalid email or password. Please check your details and try again.';
+    throw new Error(msg);
+  }
   return body.user;
 });
 
