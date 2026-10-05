@@ -43,12 +43,15 @@ export default function IncompleteRecords() {
   /* built off every filter EXCEPT project, so all four project tiles
      keep showing real numbers to click into — same "tile as filter
      shortcut" pattern as Owner Base's project breakdown. */
-  const rowsForProjectStats = useMemo(() => incompleteRecords.filter((c) => {
-    const u = c.units[0] || {};
-    return (!filters.status || c.status === filters.status)
-      && (!filters.missing || missingFrom(c).includes(filters.missing))
-      && (!filters.q || (c.name + c.id + c.mobile + (u.unit || '')).toLowerCase().includes(filters.q.toLowerCase()));
-  }), [incompleteRecords, filters.status, filters.missing, filters.q]);
+  const rowsForProjectStats = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    return incompleteRecords.filter((c) => {
+      const u = c.units[0] || {};
+      return (!filters.status || c.status === filters.status)
+        && (!filters.missing || missingFrom(c).includes(filters.missing))
+        && (!q || (c.name + c.id + c.mobile + (u.unit || '')).toLowerCase().includes(q));
+    });
+  }, [incompleteRecords, filters.status, filters.missing, filters.q]);
 
   const PROJECT_STATS = useMemo(() => masterData.projects.map((p) => ({
     name: p.name,

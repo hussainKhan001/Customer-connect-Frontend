@@ -118,6 +118,7 @@ export default function OwnerBase() {
 
   const rows = useMemo(() => {
     const f = filters;
+    const q = f.q.trim().toLowerCase();
     const matched = base.filter((c) =>
       (!f.seg || c._seg === f.seg) &&
       (!f.proj || c.units.some((u) => u.project === f.proj)) &&
@@ -126,7 +127,7 @@ export default function OwnerBase() {
       (!f.status || c.status === f.status) &&
       (f.confMin === '' || c._conf >= Number(f.confMin)) &&
       (f.confMax === '' || c._conf <= Number(f.confMax)) &&
-      (!f.q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(f.q.toLowerCase())));
+      (!q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(q)));
 
     if (orderKeyRef.current !== orderKey) {
       const sorted = [...matched].sort(compareRows);
@@ -179,13 +180,14 @@ export default function OwnerBase() {
      clauses below, minus the project/unit ones. */
   const rowsForProjectStats = useMemo(() => {
     const f = filters;
+    const q = f.q.trim().toLowerCase();
     return base.filter((c) =>
       (!f.seg || c._seg === f.seg) &&
       (!f.ent || c.units.some((u) => u.entity === f.ent)) &&
       (!f.status || c.status === f.status) &&
       (f.confMin === '' || c._conf >= Number(f.confMin)) &&
       (f.confMax === '' || c._conf <= Number(f.confMax)) &&
-      (!f.q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(f.q.toLowerCase())));
+      (!q || (c.name + c.id + c._unit + c.city).toLowerCase().includes(q)));
   }, [base, filters.seg, filters.ent, filters.status, filters.q, filters.confMin, filters.confMax]);
 
   const PROJECT_STATS = useMemo(() => {

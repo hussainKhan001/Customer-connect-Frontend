@@ -47,8 +47,9 @@ export default function ThemedSelect({
   const popupRef = useRef(null);
 
   const showSearch = alwaysShowSearch || options.length > 8;
-  const filtered = q
-    ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()))
+  const needle = q.trim().toLowerCase();
+  const filtered = needle
+    ? options.filter((o) => o.label.toLowerCase().includes(needle))
     : options;
   const selected = options.find((o) => o.value === value);
 
