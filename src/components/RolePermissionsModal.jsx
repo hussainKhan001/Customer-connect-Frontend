@@ -11,7 +11,7 @@
    actually reasoned about ("does this role touch money at all?") more
    than a flat alphabetical list ever could. */
 import { useMemo, useState } from 'react';
-import { Lock, ShieldAlert, ShieldCheck, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Lock, ShieldAlert, ShieldCheck, Search, ChevronDown, ChevronUp, Key } from 'lucide-react';
 import { BtnPrimary, btnGhost, Chip, Banner } from './Ui.jsx';
 import Modal from './Modal.jsx';
 import { CAPABILITIES, LEVEL_OPTIONS, NON_OVERRIDABLE, MANAGE_USERS, GRANTABLE, PERMISSION_GROUPS, openCount } from '../constants/governance.js';

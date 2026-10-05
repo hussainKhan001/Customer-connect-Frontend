@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Pencil, ArrowLeft, AlertTriangle, Clock } from 'lucide-react';
+import { Pencil, ArrowLeft, AlertTriangle, Clock, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCurrentCustomer } from '../hooks/useCurrentCustomer.js';
 import { useFollowUpCountdown } from '../hooks/useFollowUpCountdown.js';
 import { useFirstTouch } from '../hooks/useFirstTouch.js';
+import { useFamilyGroup } from '../hooks/useFamilyGroup.js';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { Card, Chip, Row, KV, Meter, Dot, confMeterCls, btnGhost, BtnPrimary } from '../components/Ui.jsx';
 import ThemedSelect from '../components/theme/ThemedSelect.jsx';
@@ -15,9 +16,12 @@ import CallModal from '../components/CallModal.jsx';
 import SegmentOverrideModal from '../components/SegmentOverrideModal.jsx';
 import InviteListDrawer from '../components/InviteListDrawer.jsx';
 import PortfolioStatementDrawer from '../components/PortfolioStatementDrawer.jsx';
+import FamilyGroupModal from '../components/FamilyGroupModal.jsx';
 import { initials, inrF, fmtD, fmtDT, displayName, hasCoApplicant } from '../utils/core.js';
 import { roll, confidence, segDisplay, timelineItems } from '../utils/derived.js';
 import { STATUSLBL } from '../constants/segments.js';
+import { apiFetch } from '../utils/api.js';
+import { toast } from '../utils/toast.js';
 
 import MOverview from './master/MOverview.jsx';
 import MPortfolio from './master/MPortfolio.jsx';
@@ -68,7 +72,7 @@ const CONF_SHORT_LABEL = {
 };
 
 export default function CustomerMaster() {
-  const { base, weights } = useApp();
+  const { base, weights, patchCustomer } = useApp();
   const { can } = useAuth();
   const { getThemeColor } = useTheme();
   const { id, tab } = useParams();
@@ -79,6 +83,7 @@ export default function CustomerMaster() {
   const [segmentOpen, setSegmentOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [statementOpen, setStatementOpen] = useState(false);
+  const [familyGroupOpen, setFamilyGroupOpen] = useState(false);
 
   /* land on the strongest Segment A record when nobody has been picked */
   const fallback = base.find((c) => c._seg === 'A') || base[0];
@@ -190,6 +195,14 @@ export default function CustomerMaster() {
               <Stat label="Unrealised gain" v={c._live ? inrF(r.gain) : '—'} tone="g" />
             </div>
 
+            <FamilyGroupCard
+              c={c}
+              base={base}
+              canManage={can('Manage family groups')}
+              onManage={() => setFamilyGroupOpen(true)}
+              onRemoved={(updated) => patchCustomer(updated)}
+            />
+
             <Rail c={c} cf={cf} weights={weights} onEditProfile={() => setEditOpen(true)} />
           </div>
 
@@ -245,6 +258,13 @@ export default function CustomerMaster() {
       {segmentOpen && <SegmentOverrideModal customer={c} onClose={() => setSegmentOpen(false)} />}
       {inviteOpen && <InviteListDrawer customer={c} onClose={() => setInviteOpen(false)} />}
       {statementOpen && <PortfolioStatementDrawer customer={c} onClose={() => setStatementOpen(false)} />}
+      {familyGroupOpen && (
+        <FamilyGroupModal
+          customer={c}
+          onClose={() => setFamilyGroupOpen(false)}
+          onLinked={(groupId) => patchCustomer({ ...c, familyGroupId: groupId })}
+        />
+      )}
     </>
   );
 }
@@ -294,6 +314,107 @@ function NextFollowUpCard({ c }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* Several family members, each with their own separate Customer
+   record (own PAN, own booking) — familyGroupId is just a link between
+   those otherwise-independent records (see backend/src/models/
+   FamilyGroup.js), so the member list + unit rollup below reads
+   straight off useApp().base (already loaded for the whole owner base)
+   filtered on that id, rather than a second fetch duplicating data the
+   page already has. Renders nothing at all if this owner isn't in a
+   group and the viewer can't create one — not an empty card for
+   something that doesn't apply. */
+function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
+  const { group } = useFamilyGroup(c.familyGroupId);
+  const navigate = useNavigate();
+  const [busyId, setBusyId] = useState(null);
+
+  if (!c.familyGroupId) {
+    return canManage ? (
+      <Card title="Family group">
+        <button
+          className={`${btnGhost} w-full text-xs inline-flex items-center justify-center gap-1.5`}
+          onClick={onManage}
+        >
+          <Users className="w-3.5 h-3.5" /> Add to family group
+        </button>
+      </Card>
+    ) : null;
+  }
+
+  const members = base.filter((x) => x.familyGroupId === c.familyGroupId);
+  const totalUnits = members.reduce((sum, m) => sum + (m._live || 0), 0);
+
+  /* the whole point of grouping owners in the first place — every
+     member's own roll() (same consideration/paid/outstanding/value/
+     gain math the page already shows per-owner) summed into one
+     family-wide figure, so "how is this family doing across every
+     property they hold" is one glance here instead of adding up each
+     member's own page by hand. */
+  const combined = members.reduce((acc, m) => {
+    const r = roll(m);
+    acc.consideration += r.consideration;
+    acc.paid += r.paid;
+    acc.outstanding += r.outstanding;
+    acc.value += r.value;
+    acc.gain += r.gain;
+    return acc;
+  }, { consideration: 0, paid: 0, outstanding: 0, value: 0, gain: 0 });
+
+  const removeMember = async (memberId) => {
+    setBusyId(memberId);
+    try {
+      const res = await apiFetch(`/api/family-groups/${c.familyGroupId}/members/${memberId}`, { method: 'DELETE' });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Could not remove.');
+      onRemoved(body);
+      toast.success('Removed from family group', memberId === c.id ? c.name : undefined);
+    } catch (err) {
+      toast.error('Could not remove', err.message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Card
+      title={group?.name || 'Family group'}
+      hint={`${members.length} member${members.length === 1 ? '' : 's'} · ${totalUnits} unit${totalUnits === 1 ? '' : 's'}`}
+    >
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <Stat label="Combined consideration" v={inrF(combined.consideration)} />
+        <Stat label="Combined paid" v={inrF(combined.paid)} />
+        <Stat label="Combined outstanding" v={inrF(combined.outstanding)} tone={combined.outstanding > 0 ? 'o' : ''} />
+        <Stat label="Combined value today" v={inrF(combined.value)} />
+        <Stat label="Combined unrealised gain" v={inrF(combined.gain)} tone="g" />
+      </div>
+      <div className="space-y-1">
+        {members.map((m) => (
+          <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0">
+            <button onClick={() => navigate(`/master/${m.id}/overview`)} className="text-left min-w-0 flex-1 group">
+              <div className={`text-xs font-semibold truncate group-hover:underline ${m.id === c.id ? 'text-primary-600 dark:text-primary-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                {m.name}{m.id === c.id ? ' (this page)' : ''}
+              </div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                {m._live} unit{m._live === 1 ? '' : 's'}{m.units.length ? ` · ${m.units.map((u) => u.unit || '—').join(', ')}` : ''}
+              </div>
+            </button>
+            {canManage && (
+              <button
+                className="text-[10px] font-semibold text-red-500 hover:text-red-600 dark:text-red-400 flex-shrink-0 disabled:opacity-40"
+                onClick={() => removeMember(m.id)}
+                disabled={busyId === m.id}
+                title="Remove from family group"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

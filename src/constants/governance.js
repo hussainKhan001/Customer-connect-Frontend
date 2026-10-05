@@ -92,6 +92,7 @@ export const CAPABILITIES = [
   'Engagement data — NPS, referrals, events, visits',
   'Manage events and invite lists',
   'Manage leads and external complaints',
+  'Manage family groups',
   'User management — add/edit/deactivate accounts',
   'Impersonate other user accounts',
   /* one row per sidebar page — see backend/src/lib/permissions.js's
@@ -163,7 +164,7 @@ export const openCount = (permissions) =>
 export const PERMISSION_GROUPS = [
   { name: 'Owner records', Icon: Users, labels: ['Owner base — names and units', 'Personal dates — DOB, anniversary', 'Consent record'] },
   { name: 'Financials', Icon: Wallet, labels: ['Payment ledger and outstanding', 'Unrealised gain and valuation', 'Change the valuation note'] },
-  { name: 'Scoring & engagement', Icon: TrendingUp, labels: ['Propensity score and segment', 'Engagement data — NPS, referrals, events, visits', 'Send a portfolio statement', 'Manage events and invite lists', 'Manage leads and external complaints'] },
+  { name: 'Scoring & engagement', Icon: TrendingUp, labels: ['Propensity score and segment', 'Engagement data — NPS, referrals, events, visits', 'Send a portfolio statement', 'Manage events and invite lists', 'Manage leads and external complaints', 'Manage family groups'] },
   { name: 'Risk & compliance', Icon: ShieldAlert, labels: ['Complaints and NCR references', 'Litigation flag and case notes', NON_OVERRIDABLE] },
   { name: 'Administration', Icon: Settings, labels: ['Owner status and transfer state', 'Export the base', MANAGE_USERS, 'Impersonate other user accounts'] },
   /* one row per sidebar page/tab — whether the person sees it at all,

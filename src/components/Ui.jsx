@@ -352,6 +352,7 @@ export const rowActionCls = (tone = 'primary') =>
 const TABLE_ICON_TONE = {
   primary: 'text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30',
   red: 'text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30',
+  green: 'text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30',
 };
 export const tableIconBtnCls = (tone = 'primary') =>
   `p-1.5 rounded-lg transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${TABLE_ICON_TONE[tone] || TABLE_ICON_TONE.primary}`;
