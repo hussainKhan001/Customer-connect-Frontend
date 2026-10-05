@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Pencil, ArrowLeft, AlertTriangle, Clock, Users } from 'lucide-react';
+import { Pencil, ArrowLeft, AlertTriangle, Clock, Users, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCurrentCustomer } from '../hooks/useCurrentCustomer.js';
@@ -393,15 +393,33 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
       <div className="space-y-1">
         {members.map((m) => (
           <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0">
-            <button onClick={() => navigate(`/master/${m.id}/overview`)} className="text-left min-w-0 flex-1 group">
-              <div className={`text-xs font-semibold truncate group-hover:underline ${m.id === c.id ? 'text-primary-600 dark:text-primary-400' : 'text-gray-800 dark:text-gray-100'}`}>
-                {displayName(m)}{m.id === c.id ? ' (this page)' : ''}
+            <button
+              onClick={() => navigate(`/master/${m.id}/overview`)}
+              className="flex items-center gap-1.5 text-left min-w-0 flex-1 group"
+              title={`Open ${displayName(m)}'s customer master`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className={`text-xs font-semibold truncate group-hover:underline ${m.id === c.id ? 'text-primary-600 dark:text-primary-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                    {displayName(m)}{m.id === c.id ? ' (this page)' : ''}
+                  </span>
+                  {m.familyGroupRelation && (
+                    <span className="flex-shrink-0 text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                      {m.familyGroupRelation}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                  {m._live} unit{m._live === 1 ? '' : 's'}{m.units.length ? ` · ${m.units.map((u) => u.unit || '—').join(', ')}` : ''}
+                </div>
               </div>
-              <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                {m._live} unit{m._live === 1 ? '' : 's'}{m.units.length ? ` · ${m.units.map((u) => u.unit || '—').join(', ')}` : ''}
-              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-primary-500 flex-shrink-0" />
             </button>
-            {canManage && (
+            {/* the page's own owner can't be removed from here — that's
+               a self-removal, which reads as the whole card vanishing
+               out from under the page you're looking at. Remove them
+               from a fellow member's page instead. */}
+            {canManage && m.id !== c.id && (
               <button
                 className="text-[10px] font-semibold text-red-500 hover:text-red-600 dark:text-red-400 flex-shrink-0 disabled:opacity-40"
                 onClick={() => removeMember(m.id)}

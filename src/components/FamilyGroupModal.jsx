@@ -9,20 +9,33 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Users } from 'lucide-react';
 import Modal from './Modal.jsx';
+import ThemedSelect from './theme/ThemedSelect.jsx';
 import { btnGhost, BtnPrimary, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
 import { useApp } from '../context/AppContext.jsx';
 import { apiFetch } from '../utils/api.js';
 import { displayName } from '../utils/core.js';
 import { toast, mutationErrorToast } from '../utils/toast.js';
 
+/* kept short and generic on purpose — this is a free-text-adjacent
+   label on the member card, not a modelled relationship graph (no
+   inverse, no validation that two "Spouse" members make sense
+   together). "Other" always stays last. */
+const RELATION_OPTIONS = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Sibling', 'Other'];
+
 export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
   const { base } = useApp();
   const [query, setQuery] = useState('');
   const [groups, setGroups] = useState(null);
-  const [pendingNew, setPendingNew] = useState(null); // the owner picked who has no group yet — need a name to create one
+  const [pendingTarget, setPendingTarget] = useState(null); // owner just picked — confirm relation (+ group name, if new) before linking
   const [newName, setNewName] = useState('');
+  const [relation, setRelation] = useState('');
   const [errors, setErrors] = useState({});
   const [linkingId, setLinkingId] = useState(null);
+
+  /* 'addToOwn': c already has a group, target joins it directly.
+     'join': c has no group yet, target already does — c joins target's.
+     'createNew': neither has a group yet — name a new one for both. */
+  const mode = !pendingTarget ? null : c.familyGroupId ? 'addToOwn' : pendingTarget.familyGroupId ? 'join' : 'createNew';
 
   useEffect(() => {
     apiFetch('/api/family-groups')
@@ -65,13 +78,13 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
       .slice(0, 20);
   }, [linkable, needle]);
 
-  const joinExistingGroup = async (target) => {
+  const joinExistingGroup = async (target, rel) => {
     setLinkingId(target.id);
     try {
       const res = await apiFetch(`/api/family-groups/${target.familyGroupId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: c.id }),
+        body: JSON.stringify({ customerId: c.id, relation: rel }),
       });
       const body = await res.json();
       if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
@@ -89,13 +102,13 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
      rather than creating a new one or asking for a name, same as
      joinExistingGroup above but the target end of the link is fixed
      (c's own group) instead of the owner just picked. */
-  const addToOwnGroup = async (target) => {
+  const addToOwnGroup = async (target, rel) => {
     setLinkingId(target.id);
     try {
       const res = await apiFetch(`/api/family-groups/${c.familyGroupId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: target.id }),
+        body: JSON.stringify({ customerId: target.id, relation: rel }),
       });
       const body = await res.json();
       if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
@@ -109,12 +122,11 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
     }
   };
 
-  const createAndLink = async () => {
-    if (!pendingNew) return;
+  const createAndLink = async (target, rel) => {
     setErrors({});
     const name = newName.trim();
     if (!name) { setErrors({ name: 'Enter a name for this family group.' }); return; }
-    setLinkingId(pendingNew.id);
+    setLinkingId(target.id);
     try {
       const res = await apiFetch('/api/family-groups', {
         method: 'POST',
@@ -128,13 +140,13 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
       const joinRes = await apiFetch(`/api/family-groups/${body.id}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: pendingNew.id }),
+        body: JSON.stringify({ customerId: target.id, relation: rel }),
       });
       if (!joinRes.ok) {
         const joinBody = await joinRes.json().catch(() => ({}));
-        toast.error('Group created, but could not add ' + displayName(pendingNew), joinBody.error || 'Add them from their own page instead.');
+        toast.error('Group created, but could not add ' + displayName(target), joinBody.error || 'Add them from their own page instead.');
       } else {
-        toast.success('Family group created', `${displayName(c)} and ${displayName(pendingNew)} linked as "${name}".`);
+        toast.success('Family group created', `${displayName(c)} and ${displayName(target)} linked as "${name}".`);
       }
       onLinked(body.id);
       onClose();
@@ -146,18 +158,20 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
   };
 
   const pickOwner = (target) => {
-    if (c.familyGroupId) {
-      /* c is already in a group — the only sensible action from here is
-         pulling target into that same group. If target is already in a
-         different group, the backend rejects it with a clear error
-         (merging two existing groups isn't something this picker does). */
-      addToOwnGroup(target);
-    } else if (target.familyGroupId) {
-      joinExistingGroup(target);
-    } else {
-      setPendingNew(target);
+    setPendingTarget(target);
+    setRelation('');
+    setErrors({});
+    if (!c.familyGroupId && !target.familyGroupId) {
       setNewName(`${displayName(c)} & ${displayName(target)}`.slice(0, 80));
     }
+  };
+
+  const confirmLink = () => {
+    if (!pendingTarget) return;
+    const rel = relation.trim() || null;
+    if (mode === 'addToOwn') addToOwnGroup(pendingTarget, rel);
+    else if (mode === 'join') joinExistingGroup(pendingTarget, rel);
+    else createAndLink(pendingTarget, rel);
   };
 
   return (
@@ -169,25 +183,44 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
       onClose={onClose}
       footer={<button className={btnGhost} onClick={onClose}>Close</button>}
     >
-      {pendingNew ? (
+      {pendingTarget ? (
         <div>
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
-            {displayName(pendingNew)} isn't in a family group yet — name the group to create it and link both owners.
+            {mode === 'createNew' && `${displayName(pendingTarget)} isn't in a family group yet — name the group to create it and link both owners.`}
+            {mode === 'join' && `Joining ${displayName(c)} into ${displayName(pendingTarget)}'s existing family group.`}
+            {mode === 'addToOwn' && `Adding ${displayName(pendingTarget)} into this family group.`}
           </p>
-          <label className={formLabelCls}>Family group name<Req /></label>
-          <input
-            autoFocus
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            className={formInputCls(!!errors.name)}
+
+          {mode === 'createNew' && (
+            <>
+              <label className={formLabelCls}>Family group name<Req /></label>
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className={formInputCls(!!errors.name)}
+              />
+              {errors.name && <div className={formErrorCls}>{errors.name}</div>}
+            </>
+          )}
+
+          <label className={formLabelCls}>
+            {mode === 'join' ? `${displayName(c)}'s relation to the family` : `${displayName(pendingTarget)}'s relation to the family`}
+          </label>
+          <ThemedSelect
+            value={relation}
+            onChange={setRelation}
+            placeholder="— Not specified —"
+            options={RELATION_OPTIONS.map((r) => ({ value: r, label: r }))}
+            className="w-full"
           />
-          {errors.name && <div className={formErrorCls}>{errors.name}</div>}
+
           <div className="flex gap-2 mt-4">
-            <button className={`${btnGhost} flex-1`} onClick={() => setPendingNew(null)} disabled={linkingId === pendingNew.id}>
+            <button className={`${btnGhost} flex-1`} onClick={() => setPendingTarget(null)} disabled={linkingId === pendingTarget.id}>
               Back
             </button>
-            <BtnPrimary className="flex-1" onClick={createAndLink} disabled={linkingId === pendingNew.id}>
-              {linkingId === pendingNew.id ? 'Linking…' : 'Create & link'}
+            <BtnPrimary className="flex-1" onClick={confirmLink} disabled={linkingId === pendingTarget.id}>
+              {linkingId === pendingTarget.id ? 'Linking…' : mode === 'createNew' ? 'Create & link' : 'Add'}
             </BtnPrimary>
           </div>
         </div>
