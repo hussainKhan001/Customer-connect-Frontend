@@ -35,7 +35,10 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
 
   const needle = query.trim().toLowerCase();
   const results = useMemo(() => {
-    const others = base.filter((x) => x.id !== c.id);
+    /* when c is already in a group, its existing fellow members would
+       otherwise show up in this same picker as if they still needed
+       linking — exclude anyone already sharing c's own familyGroupId. */
+    const others = base.filter((x) => x.id !== c.id && !(c.familyGroupId && x.familyGroupId === c.familyGroupId));
     if (!needle) {
       /* nothing typed yet — show SOMETHING rather than an empty drawer,
          same reasoning as Owner Base itself never opening to a blank
@@ -58,7 +61,31 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
       });
       const body = await res.json();
       if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
-      toast.success('Added to family group', `${c.name} linked with ${target.name}.`);
+      toast.success('Added to family group', `${displayName(c)} linked with ${displayName(target)}.`);
+      onLinked(body.id);
+      onClose();
+    } catch (err) {
+      toast.error('Could not link', err.message || 'Try again.');
+    } finally {
+      setLinkingId(null);
+    }
+  };
+
+  /* c is already in a group — add target straight into THAT group
+     rather than creating a new one or asking for a name, same as
+     joinExistingGroup above but the target end of the link is fixed
+     (c's own group) instead of the owner just picked. */
+  const addToOwnGroup = async (target) => {
+    setLinkingId(target.id);
+    try {
+      const res = await apiFetch(`/api/family-groups/${c.familyGroupId}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: target.id }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
+      toast.success('Added to family group', `${displayName(target)} linked with ${displayName(c)}.`);
       onLinked(body.id);
       onClose();
     } catch (err) {
@@ -91,9 +118,9 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
       });
       if (!joinRes.ok) {
         const joinBody = await joinRes.json().catch(() => ({}));
-        toast.error('Group created, but could not add ' + pendingNew.name, joinBody.error || 'Add them from their own page instead.');
+        toast.error('Group created, but could not add ' + displayName(pendingNew), joinBody.error || 'Add them from their own page instead.');
       } else {
-        toast.success('Family group created', `${c.name} and ${pendingNew.name} linked as "${name}".`);
+        toast.success('Family group created', `${displayName(c)} and ${displayName(pendingNew)} linked as "${name}".`);
       }
       onLinked(body.id);
       onClose();
@@ -105,7 +132,13 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
   };
 
   const pickOwner = (target) => {
-    if (target.familyGroupId) {
+    if (c.familyGroupId) {
+      /* c is already in a group — the only sensible action from here is
+         pulling target into that same group. If target is already in a
+         different group, the backend rejects it with a clear error
+         (merging two existing groups isn't something this picker does). */
+      addToOwnGroup(target);
+    } else if (target.familyGroupId) {
       joinExistingGroup(target);
     } else {
       setPendingNew(target);
@@ -116,7 +149,7 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
   return (
     <Modal
       drawer
-      title="Add to family group"
+      title={c.familyGroupId ? 'Add family group member' : 'Add to family group'}
       subtitle={`${displayName(c)} · ${c.id}`}
       icon={Users}
       onClose={onClose}
@@ -184,7 +217,7 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
                   </div>
                 </div>
                 <span className="text-[10.5px] font-semibold text-primary-600 dark:text-primary-400 flex-shrink-0">
-                  {linkingId === x.id ? 'Linking…' : x.familyGroupId ? 'Join' : 'Link'}
+                  {linkingId === x.id ? 'Linking…' : c.familyGroupId ? 'Add' : x.familyGroupId ? 'Join' : 'Link'}
                 </span>
               </button>
             ))}

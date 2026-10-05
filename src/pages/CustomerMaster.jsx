@@ -370,7 +370,7 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Could not remove.');
       onRemoved(body);
-      toast.success('Removed from family group', memberId === c.id ? c.name : undefined);
+      toast.success('Removed from family group', memberId === c.id ? displayName(c) : undefined);
     } catch (err) {
       toast.error('Could not remove', err.message);
     } finally {
@@ -395,7 +395,7 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
           <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100 dark:border-gray-700/60 last:border-0">
             <button onClick={() => navigate(`/master/${m.id}/overview`)} className="text-left min-w-0 flex-1 group">
               <div className={`text-xs font-semibold truncate group-hover:underline ${m.id === c.id ? 'text-primary-600 dark:text-primary-400' : 'text-gray-800 dark:text-gray-100'}`}>
-                {m.name}{m.id === c.id ? ' (this page)' : ''}
+                {displayName(m)}{m.id === c.id ? ' (this page)' : ''}
               </div>
               <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
                 {m._live} unit{m._live === 1 ? '' : 's'}{m.units.length ? ` · ${m.units.map((u) => u.unit || '—').join(', ')}` : ''}
@@ -414,6 +414,14 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved }) {
           </div>
         ))}
       </div>
+      {canManage && (
+        <button
+          className={`${btnGhost} w-full text-xs inline-flex items-center justify-center gap-1.5 mt-3`}
+          onClick={onManage}
+        >
+          <Users className="w-3.5 h-3.5" /> Add member
+        </button>
+      )}
     </Card>
   );
 }

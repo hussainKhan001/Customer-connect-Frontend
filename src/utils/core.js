@@ -81,8 +81,17 @@ export const displayName = (c) => {
   if (c.name === '[object Object]') return `Unnamed owner (${c.id})`;
   const sal = (c.salutation || '').trim();
   if (!sal) return c.name;
-  const stripped = sal.replace(/\.$/, '');
-  return new RegExp(`^${stripped}\\.?\\s`, 'i').test(c.name) ? c.name : `${sal} ${c.name}`;
+  /* checking only for THIS record's own `salutation` value at the start
+     of `name` breaks for joint/combined entries — e.g. salutation
+     "Mrs. / Mr." against name "Mr. Anurag gupta & Mrs. Saumya Gupta":
+     the name doesn't start with the literal string "Mrs. / Mr.", even
+     though it already opens with a salutation ("Mr."), so the naive
+     check used to prepend the whole combined salutation again, reading
+     "Mrs. / Mr. Mr. Anurag gupta & ...". Checking for ANY common
+     salutation at the start of `name` (same list `initials()` strips
+     above) catches joint names correctly, not just the exact
+     configured one. */
+  return /^(Dr|Mr|Mrs|Ms|Smt|Shri)\.?\s/i.test(c.name) ? c.name : `${sal} ${c.name}`;
 };
 
 /* takes the live projects list (see AppContext's masterData) rather
