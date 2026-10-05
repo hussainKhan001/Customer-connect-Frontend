@@ -34,22 +34,36 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
   const groupName = (groupId) => groups?.find((g) => g.id === groupId)?.name;
 
   const needle = query.trim().toLowerCase();
-  const results = useMemo(() => {
+  const linkable = useMemo(() => {
     /* when c is already in a group, its existing fellow members would
        otherwise show up in this same picker as if they still needed
-       linking — exclude anyone already sharing c's own familyGroupId. */
-    const others = base.filter((x) => x.id !== c.id && !(c.familyGroupId && x.familyGroupId === c.familyGroupId));
+       linking — exclude anyone already sharing c's own familyGroupId.
+       Also exclude owners with no real name on file yet (empty, or the
+       "[object Object]" corruption, see displayName() in utils/core.js)
+       — a sizeable chunk of shell-imported records have nothing to
+       search by and nothing meaningful to show as "linked with", so
+       they'd only clutter this picker; link those once their profile
+       has a real name. */
+    return base.filter((x) =>
+      x.id !== c.id &&
+      !(c.familyGroupId && x.familyGroupId === c.familyGroupId) &&
+      String(x.name || '').trim() &&
+      x.name !== '[object Object]'
+    );
+  }, [base, c.id, c.familyGroupId]);
+
+  const results = useMemo(() => {
     if (!needle) {
       /* nothing typed yet — show SOMETHING rather than an empty drawer,
          same reasoning as Owner Base itself never opening to a blank
          table. Alphabetical, not base's own order (which is roughly
          import order, not useful to scan). */
-      return [...others].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 20);
+      return [...linkable].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 20);
     }
-    return others
+    return linkable
       .filter((x) => `${x.name} ${x.id} ${x.city || ''}`.toLowerCase().includes(needle))
       .slice(0, 20);
-  }, [base, c.id, needle]);
+  }, [linkable, needle]);
 
   const joinExistingGroup = async (target) => {
     setLinkingId(target.id);
@@ -192,7 +206,7 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
 
           {!needle && (
             <div className="text-[10.5px] text-gray-400 dark:text-gray-500 mb-2">
-              Showing {results.length} of {base.length - 1} owners — search to narrow down.
+              Showing {results.length} of {linkable.length} owners — search to narrow down.
             </div>
           )}
           {needle && results.length === 0 && (
