@@ -1,24 +1,28 @@
-/* Links one owner into a family group — either starting a brand new
-   one (the normal case: nobody in this family has been grouped yet) or
-   joining a group another family member is already in. Membership
-   itself is just a `familyGroupId` field on the Customer (see
-   backend/src/models/Customer.js's own comment); this modal is the
-   only place that field is ever set from the UI. */
-import { useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
+/* Links one owner into a family group — search the existing owner
+   base directly and pick who they belong with, instead of naming/
+   picking an abstract "group" first. Behind the scenes this still
+   creates or joins a FamilyGroup record (membership is just a
+   `familyGroupId` field on the Customer, see backend/src/models/
+   Customer.js's own comment) — picking a PERSON just means one fewer
+   decision for staff who know who the family is but not what some
+   group happens to be named. */
+import { useEffect, useMemo, useState } from 'react';
+import { Search, Users } from 'lucide-react';
 import Modal from './Modal.jsx';
-import ThemedSelect from './theme/ThemedSelect.jsx';
-import { BtnPrimary, btnGhost, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
+import { btnGhost, BtnPrimary, formLabelCls, formInputCls, formErrorCls, Req } from './Ui.jsx';
+import { useApp } from '../context/AppContext.jsx';
 import { apiFetch } from '../utils/api.js';
+import { displayName } from '../utils/core.js';
 import { toast, mutationErrorToast } from '../utils/toast.js';
 
 export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
-  const [mode, setMode] = useState('new');
-  const [name, setName] = useState('');
+  const { base } = useApp();
+  const [query, setQuery] = useState('');
   const [groups, setGroups] = useState(null);
-  const [groupId, setGroupId] = useState('');
+  const [pendingNew, setPendingNew] = useState(null); // the owner picked who has no group yet — need a name to create one
+  const [newName, setNewName] = useState('');
   const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+  const [linkingId, setLinkingId] = useState(null);
 
   useEffect(() => {
     apiFetch('/api/family-groups')
@@ -27,98 +31,160 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
       .catch(() => setGroups([]));
   }, []);
 
-  const save = async () => {
-    setErrors({});
-    setSaving(true);
+  const groupName = (groupId) => groups?.find((g) => g.id === groupId)?.name;
+
+  const needle = query.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!needle) return [];
+    return base
+      .filter((x) => x.id !== c.id)
+      .filter((x) => `${x.name} ${x.id} ${x.city || ''}`.toLowerCase().includes(needle))
+      .slice(0, 20);
+  }, [base, c.id, needle]);
+
+  const joinExistingGroup = async (target) => {
+    setLinkingId(target.id);
     try {
-      let linkedGroupId;
-      if (mode === 'new') {
-        const res = await apiFetch('/api/family-groups', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, customerId: c.id }),
-        });
-        const body = await res.json();
-        if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
-        toast.success('Family group created', `${c.name} added to "${name}".`);
-        linkedGroupId = body.id;
+      const res = await apiFetch(`/api/family-groups/${target.familyGroupId}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: c.id }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
+      toast.success('Added to family group', `${c.name} linked with ${target.name}.`);
+      onLinked(body.id);
+      onClose();
+    } catch (err) {
+      toast.error('Could not link', err.message || 'Try again.');
+    } finally {
+      setLinkingId(null);
+    }
+  };
+
+  const createAndLink = async () => {
+    if (!pendingNew) return;
+    setErrors({});
+    const name = newName.trim();
+    if (!name) { setErrors({ name: 'Enter a name for this family group.' }); return; }
+    setLinkingId(pendingNew.id);
+    try {
+      const res = await apiFetch('/api/family-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, customerId: c.id }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
+      /* the new group now has c as its only member — join the owner
+         just picked in a second call, same as "Existing group" would. */
+      const joinRes = await apiFetch(`/api/family-groups/${body.id}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: pendingNew.id }),
+      });
+      if (!joinRes.ok) {
+        const joinBody = await joinRes.json().catch(() => ({}));
+        toast.error('Group created, but could not add ' + pendingNew.name, joinBody.error || 'Add them from their own page instead.');
       } else {
-        if (!groupId) { setErrors({ group: 'Choose a group.' }); setSaving(false); return; }
-        const res = await apiFetch(`/api/family-groups/${groupId}/members`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerId: c.id }),
-        });
-        const body = await res.json();
-        if (!res.ok) throw { errors: body.errors, message: body.error }; // eslint-disable-line no-throw-literal
-        toast.success('Added to family group', `${c.name} added to "${body.name}".`);
-        linkedGroupId = body.id;
+        toast.success('Family group created', `${c.name} and ${pendingNew.name} linked as "${name}".`);
       }
-      onLinked(linkedGroupId);
+      onLinked(body.id);
       onClose();
     } catch (err) {
       mutationErrorToast(err, setErrors);
     } finally {
-      setSaving(false);
+      setLinkingId(null);
     }
   };
 
-  const groupOptions = (groups || []).map((g) => ({ value: g.id, label: `${g.name} (${g.memberCount} member${g.memberCount === 1 ? '' : 's'})` }));
+  const pickOwner = (target) => {
+    if (target.familyGroupId) {
+      joinExistingGroup(target);
+    } else {
+      setPendingNew(target);
+      setNewName(`${displayName(c)} & ${displayName(target)}`.slice(0, 80));
+    }
+  };
 
   return (
     <Modal
+      drawer
       title="Add to family group"
-      subtitle={`${c.name} · ${c.id}`}
+      subtitle={`${displayName(c)} · ${c.id}`}
       icon={Users}
       onClose={onClose}
-      footer={
-        <>
-          <button className={btnGhost} onClick={onClose} disabled={saving}>Cancel</button>
-          <BtnPrimary onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Add'}</BtnPrimary>
-        </>
-      }
+      footer={<button className={btnGhost} onClick={onClose}>Close</button>}
     >
-      <div className="flex rounded-full border border-gray-200 dark:border-gray-700 p-0.5 bg-gray-50 dark:bg-gray-800/80 mb-4 w-fit">
-        {[['new', 'New group'], ['existing', 'Existing group']].map(([k, l]) => (
-          <button
-            key={k}
-            onClick={() => setMode(k)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              mode === k ? 'bg-primary-500 text-white shadow-2xs' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-            }`}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
-
-      {mode === 'new' ? (
+      {pendingNew ? (
         <div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+            {displayName(pendingNew)} isn't in a family group yet — name the group to create it and link both owners.
+          </p>
           <label className={formLabelCls}>Family group name<Req /></label>
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            autoFocus
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
             className={formInputCls(!!errors.name)}
-            placeholder="e.g. Shukla Family"
           />
           {errors.name && <div className={formErrorCls}>{errors.name}</div>}
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-2">
-            Creates a new group with {c.name} as its first member — add the rest of the family from their own Customer Master pages afterward (choose "Existing group" there).
-          </p>
+          <div className="flex gap-2 mt-4">
+            <button className={`${btnGhost} flex-1`} onClick={() => setPendingNew(null)} disabled={linkingId === pendingNew.id}>
+              Back
+            </button>
+            <BtnPrimary className="flex-1" onClick={createAndLink} disabled={linkingId === pendingNew.id}>
+              {linkingId === pendingNew.id ? 'Linking…' : 'Create & link'}
+            </BtnPrimary>
+          </div>
         </div>
       ) : (
-        <div>
-          <label className={formLabelCls}>Choose a group<Req /></label>
-          <ThemedSelect
-            value={groupId}
-            onChange={setGroupId}
-            options={groupOptions}
-            placeholder={!groups ? 'Loading…' : groupOptions.length ? 'Select a group' : 'No existing groups yet'}
-          />
-          {errors.group && <div className={formErrorCls}>{errors.group}</div>}
-        </div>
+        <>
+          <div className="relative mb-3">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search owners by name, ID or city…"
+              className={`${formInputCls(false)} pl-8`}
+            />
+          </div>
+
+          {!needle && (
+            <div className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">
+              Start typing to find the family member to link.
+            </div>
+          )}
+          {needle && results.length === 0 && (
+            <div className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">
+              No owners match "{query}".
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            {results.map((x) => (
+              <button
+                key={x.id}
+                onClick={() => pickOwner(x)}
+                disabled={linkingId === x.id}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left transition-colors disabled:opacity-50"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{x.name}</div>
+                  <div className="text-[10.5px] text-gray-400 dark:text-gray-500 truncate">
+                    {x.id} · {x.city}
+                    {x.familyGroupId && ` · already in "${groupName(x.familyGroupId) || 'a family group'}"`}
+                  </div>
+                </div>
+                <span className="text-[10.5px] font-semibold text-primary-600 dark:text-primary-400 flex-shrink-0">
+                  {linkingId === x.id ? 'Linking…' : x.familyGroupId ? 'Join' : 'Link'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
       )}
-      {errors.customerId && <div className={formErrorCls}>{errors.customerId}</div>}
     </Modal>
   );
 }
