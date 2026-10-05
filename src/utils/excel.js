@@ -147,9 +147,29 @@ const COMPLAINT_REQUIRED_KEYS = ['project', 'unit', 't', 'raised', 'owner', 'ncr
 function cellValue(cell) {
   let value = cell.value;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
-  if (value && typeof value === 'object' && 'text' in value) value = value.text;
+  /* exceljs's "rich text" shape — any cell with mixed formatting in one
+     cell (part bold, a different font run, ...) comes back as
+     { richText: [{text, font}, ...] } rather than a plain string or
+     either of the two shapes below. Concatenating the runs loses only
+     the formatting, not the actual text — which is all this app ever
+     reads a cell for. Checked before the other object shapes since a
+     rich-text run can itself occasionally carry a nested `.text`-like
+     key that isn't the real content. */
+  if (value && typeof value === 'object' && Array.isArray(value.richText)) {
+    value = value.richText.map((run) => run.text ?? '').join('');
+  } else if (value && typeof value === 'object' && 'text' in value) value = value.text;
   else if (value && typeof value === 'object' && 'result' in value) value = value.result;
-  return value == null ? '' : String(value).trim();
+  if (value == null) return '';
+  /* still an object at this point means some OTHER exceljs cell shape
+     this function doesn't know about yet — String(value) on that is
+     exactly how "[object Object]" ends up permanently saved as
+     someone's name (see the bug this comment replaced). Safer to drop
+     it to empty (same as a blank cell, caught by whatever required-
+     field validation already runs on import) than to silently write
+     garbage that looks like real data until someone notices months
+     later. */
+  if (typeof value === 'object') return '';
+  return String(value).trim();
 }
 
 const MONTH_NAMES = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };

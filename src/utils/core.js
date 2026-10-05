@@ -69,6 +69,16 @@ export const initials = (n) =>
    name with a salutation should go through this, not
    `${c.salutation} ${c.name}` directly. */
 export const displayName = (c) => {
+  /* a handful of real records have the literal string "[object Object]"
+     permanently saved as their name — a since-fixed Excel import bug
+     (see utils/excel.js's cellValue()) that stringified an unhandled
+     rich-text cell before writing it. The original name is gone; no
+     formatting trick recovers it. Showing the raw corrupted value
+     (or a salutation glued onto it) reads as a UI bug far more than a
+     data one, so this falls back to the one thing that's still
+     genuinely theirs — their id — until someone fixes the real name
+     via Complete profile. */
+  if (c.name === '[object Object]') return `Unnamed owner (${c.id})`;
   const sal = (c.salutation || '').trim();
   if (!sal) return c.name;
   const stripped = sal.replace(/\.$/, '');

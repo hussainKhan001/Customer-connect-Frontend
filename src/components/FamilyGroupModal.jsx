@@ -177,7 +177,7 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
                 className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 text-left transition-colors disabled:opacity-50"
               >
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{x.name}</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{displayName(x)}</div>
                   <div className="text-[10.5px] text-gray-400 dark:text-gray-500 truncate">
                     {x.id} · {x.city}
                     {x.familyGroupId && ` · already in "${groupName(x.familyGroupId) || 'a family group'}"`}
