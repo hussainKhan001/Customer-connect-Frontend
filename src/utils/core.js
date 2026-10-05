@@ -78,7 +78,7 @@ export const displayName = (c) => {
      data one, so this falls back to the one thing that's still
      genuinely theirs — their id — until someone fixes the real name
      via Complete profile. */
-  if (c.name === '[object Object]') return `Unnamed owner (${c.id})`;
+  if (c.name === '[object Object]' || !String(c.name || '').trim()) return `Unnamed owner (${c.id})`;
   const sal = (c.salutation || '').trim();
   if (!sal) return c.name;
   /* checking only for THIS record's own `salutation` value at the start
