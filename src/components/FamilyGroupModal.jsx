@@ -181,10 +181,21 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
       subtitle={`${displayName(c)} · ${c.id}`}
       icon={Users}
       onClose={onClose}
-      footer={<button className={btnGhost} onClick={onClose}>Close</button>}
+      footer={pendingTarget ? (
+        <>
+          <button className={`${btnGhost} flex-1`} onClick={() => setPendingTarget(null)} disabled={linkingId === pendingTarget.id}>
+            Back
+          </button>
+          <BtnPrimary className="flex-1" onClick={confirmLink} disabled={linkingId === pendingTarget.id}>
+            {linkingId === pendingTarget.id ? 'Linking…' : mode === 'createNew' ? 'Create & link' : 'Add'}
+          </BtnPrimary>
+        </>
+      ) : (
+        <button className={btnGhost} onClick={onClose}>Close</button>
+      )}
     >
       {pendingTarget ? (
-        <div>
+        <div key={pendingTarget.id} className="animate-fade-in-up">
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
             {mode === 'createNew' && `${displayName(pendingTarget)} isn't in a family group yet — name the group to create it and link both owners.`}
             {mode === 'join' && `Joining ${displayName(c)} into ${displayName(pendingTarget)}'s existing family group.`}
@@ -214,18 +225,9 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
             options={RELATION_OPTIONS.map((r) => ({ value: r, label: r }))}
             className="w-full"
           />
-
-          <div className="flex gap-2 mt-4">
-            <button className={`${btnGhost} flex-1`} onClick={() => setPendingTarget(null)} disabled={linkingId === pendingTarget.id}>
-              Back
-            </button>
-            <BtnPrimary className="flex-1" onClick={confirmLink} disabled={linkingId === pendingTarget.id}>
-              {linkingId === pendingTarget.id ? 'Linking…' : mode === 'createNew' ? 'Create & link' : 'Add'}
-            </BtnPrimary>
-          </div>
         </div>
       ) : (
-        <>
+        <div className="animate-fade-in-up">
           <div className="relative mb-3">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -269,7 +271,7 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
               </button>
             ))}
           </div>
-        </>
+        </div>
       )}
     </Modal>
   );
