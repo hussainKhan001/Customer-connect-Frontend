@@ -35,9 +35,15 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
 
   const needle = query.trim().toLowerCase();
   const results = useMemo(() => {
-    if (!needle) return [];
-    return base
-      .filter((x) => x.id !== c.id)
+    const others = base.filter((x) => x.id !== c.id);
+    if (!needle) {
+      /* nothing typed yet — show SOMETHING rather than an empty drawer,
+         same reasoning as Owner Base itself never opening to a blank
+         table. Alphabetical, not base's own order (which is roughly
+         import order, not useful to scan). */
+      return [...others].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 20);
+    }
+    return others
       .filter((x) => `${x.name} ${x.id} ${x.city || ''}`.toLowerCase().includes(needle))
       .slice(0, 20);
   }, [base, c.id, needle]);
@@ -152,8 +158,8 @@ export default function FamilyGroupModal({ customer: c, onClose, onLinked }) {
           </div>
 
           {!needle && (
-            <div className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">
-              Start typing to find the family member to link.
+            <div className="text-[10.5px] text-gray-400 dark:text-gray-500 mb-2">
+              Showing {results.length} of {base.length - 1} owners — search to narrow down.
             </div>
           )}
           {needle && results.length === 0 && (
