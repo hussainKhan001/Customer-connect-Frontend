@@ -327,11 +327,14 @@ export function PermissionGate({ capability, children, fallback = null, mode = '
 export function PageGate({ capability, label, children }) {
   const { can } = useAuth();
   if (can(capability)) return children;
+  const hint = Array.isArray(capability)
+    ? `Ask an admin to grant at least one of its capabilities (${capability.join(', ')}) if you need this.`
+    : `Ask an admin to grant the "${capability}" capability if you need this.`;
   return (
     <EmptyState
       icon={ShieldAlert}
       title={`You don't have access to ${label}`}
-      hint={`Ask an admin to grant the "${capability}" capability if you need this.`}
+      hint={hint}
     />
   );
 }

@@ -52,8 +52,18 @@ export function useAuth() {
      null on the very first render (before /me resolves) and possibly
      stale mid-session (role changed elsewhere) — false-until-proven is
      the safe default in both cases, not "show it and let the 403
-     surprise them". */
-  const can = useCallback((capability) => !!user?.permissions?.[capability], [user]);
+     surprise them".
+     An array of capabilities (e.g. Settings' sidebar link — see
+     navigation.js) reads as "can reach at least one of these", for a
+     combined page whose own sections each gate on their own specific
+     capability once inside. */
+  const can = useCallback(
+    (capability) =>
+      Array.isArray(capability)
+        ? capability.some((c) => !!user?.permissions?.[c])
+        : !!user?.permissions?.[capability],
+    [user]
+  );
 
   return { user, realUser, authLoading, login, logout, impersonate, revertImpersonation, can };
 }

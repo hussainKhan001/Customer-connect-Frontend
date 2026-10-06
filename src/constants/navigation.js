@@ -88,15 +88,20 @@ export const PAGES = [
     title: 'Audit Log', desc: 'Every Create, Update & Delete Across the System, by Who and When' },
   /* consolidates what used to be three separate pages (User management,
      Master data, Access & governance) into one hub — see Settings.jsx.
-     Gated on the same capability User management always was; each
-     section inside additionally checks its own specific one (a role
-     with e.g. Master data but not User management still only sees that
-     one section once inside, same layered enforcement every other
-     Module row already has). Deliberately excluded from App.jsx's
-     generic per-page <Route>, same as 'master' below — it needs a
-     second, nested route for /settings/:section. */
+     The link itself is visible to anyone who can see AT LEAST ONE of
+     the five section capabilities below (must stay in sync with
+     Settings.jsx's own SECTION_DEFS) — gating it on 'Module: User
+     management' alone used to hide the whole link from a role that
+     could only see e.g. Master data, since Sidebar.jsx's capability
+     check doesn't fall through to "once inside" the way this entry's
+     own comment used to claim; Settings.jsx's per-section check (and
+     its own "you don't have access" empty state) is what actually
+     limits what they see once they're in. Deliberately excluded from
+     App.jsx's generic per-page <Route>, same as 'master' below — it
+     needs a second, nested route for /settings/:section. */
   { id: 'settings', path: 'settings', group: 'Build', label: 'Settings', Icon: SettingsIcon,
-    Component: Settings, capability: 'Module: User management',
+    Component: Settings,
+    capability: ['Module: Company profile', 'Module: User management', 'Module: Roles', 'Module: Access & governance', 'Module: Master data'],
     title: 'Settings', desc: 'Company Profile, Users, Roles, Access & Master Data — All in One Place' },
 ];
 
