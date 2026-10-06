@@ -420,18 +420,18 @@ function FamilyGroupCard({ c, base, canManage, onManage, onRemoved, onViewMember
                 <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-primary-500 flex-shrink-0" />
               </button>
             )}
-            {/* the page's own owner can't be removed from here — that's
-               a self-removal, which reads as the whole card vanishing
-               out from under the page you're looking at. Remove them
-               from a fellow member's page instead. */}
-            {canManage && !isRoot && (
+            {/* removing the page's own owner falls back to the empty
+               "Add to family group" state (onRemoved patches familyGroupId
+               to null), not an empty/broken card — so self-removal is
+               just as safe as removing anyone else here. */}
+            {canManage && (
               <button
                 className="text-[10px] font-semibold text-red-500 hover:text-red-600 dark:text-red-400 flex-shrink-0 disabled:opacity-40"
                 onClick={() => removeMember(m.id)}
                 disabled={busyId === m.id}
-                title="Remove from family group"
+                title={isRoot ? 'Leave this family group' : 'Remove from family group'}
               >
-                Remove
+                {isRoot ? 'Leave' : 'Remove'}
               </button>
             )}
           </div>
