@@ -10,11 +10,25 @@ import ReferralModal from '../../components/ReferralModal.jsx';
 import EventModal from '../../components/EventModal.jsx';
 import ComplaintModal from '../../components/ComplaintModal.jsx';
 import { useEvents } from '../../hooks/useEvents.js';
-import { CalendarDays, Check } from 'lucide-react';
+import { useExternalComplaints } from '../../hooks/useExternalComplaints.js';
+import ImageLightbox from '../../components/ImageLightbox.jsx';
+import { CalendarDays, Check, MessageSquareWarning, ImageIcon } from 'lucide-react';
+
+const EXT_COMPLAINT_TONE = { Pending: 'w', Resolved: 'g', 'In Progress': 'o' };
 
 export default function MRelationship({ c }) {
   const { mutateCustomer } = useApp();
   const { events } = useEvents();
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const { complaints: extComplaints } = useExternalComplaints();
+  /* the external-complaint system's own matching (by contact number,
+     see backend/src/lib/webhookMatch.js) already decided which owner
+     this is about — this just reads that decision back out for the
+     one owner this page happens to be showing, same filter-the-shared-
+     list pattern as myEvents below. */
+  const myComplaints = (extComplaints || [])
+    .filter((x) => x.customerId === c.id)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   /* the invite-list system (Events page) is a separate collection from
      this owner's own `events`/siteVisits counters above — this cross-
      references it so "which events was THIS owner invited to, and did
@@ -280,6 +294,15 @@ export default function MRelationship({ c }) {
               <div>
                 <b>{o.t}</b>{o.unit && <span className="ml-1.5"><Chip cls="m">{o.unit}</Chip></span>}<br />
                 Raised {fmtD(o.raised)} · ageing <b>{o.days} days</b> · {o.ncr} · owner {o.owner}
+                {o.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxSrc(o.imageUrl)}
+                    className="flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" /> Attached image
+                  </button>
+                )}
               </div>
               <button className={rowActionCls('green')} onClick={() => closeComplaint(o)}>Close</button>
             </div>
@@ -298,6 +321,15 @@ export default function MRelationship({ c }) {
                     <div className="text-[10.5px] text-gray-400 dark:text-gray-500">
                       closed in {x.days} days{x.closeReason ? ` — ${x.closeReason}` : ''}
                     </div>
+                    {x.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setLightboxSrc(x.imageUrl)}
+                        className="flex items-center gap-1 mt-1 text-[10.5px] font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        <ImageIcon className="w-3 h-3" /> Attached image
+                      </button>
+                    )}
                   </span>
                 </li>
               ))}
@@ -305,6 +337,44 @@ export default function MRelationship({ c }) {
           </div>
         )}
       </Card>
+
+      <Card title="Reported issues" hint={extComplaints ? `${myComplaints.length} from the external intake system` : ''}>
+        {!extComplaints ? (
+          <div className="text-xs text-gray-500 dark:text-gray-400">Loading…</div>
+        ) : myComplaints.length === 0 ? (
+          <EmptyState icon={MessageSquareWarning} title="No complaints reported through the external system." />
+        ) : (
+          <Timeline>
+            {myComplaints.map((x) => (
+              <li key={x.id} className="flex gap-2.5 py-2 border-b border-gray-100 dark:border-gray-700/60 last:border-0 text-sm">
+                <span className="w-20 flex-shrink-0 text-gray-400 dark:text-gray-500 text-xs tabular-nums">{fmtD(x.createdAt)}</span>
+                <span className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <b>{x.requestCategory || 'General'}</b>
+                    {x.unit && <Chip cls="m">{x.unit}</Chip>}
+                    <Chip cls={EXT_COMPLAINT_TONE[x.status] || 'w'}>{x.status}</Chip>
+                  </div>
+                  <div className="text-gray-600 dark:text-gray-300">{x.narration}</div>
+                  {x.adminComments && (
+                    <div className="text-[10.5px] text-gray-400 dark:text-gray-500 mt-0.5">Note: {x.adminComments}</div>
+                  )}
+                  {x.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setLightboxSrc(x.imageUrl)}
+                      className="flex items-center gap-1 mt-1 text-[10.5px] font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                    >
+                      <ImageIcon className="w-3 h-3" /> Attached image
+                    </button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </Timeline>
+        )}
+      </Card>
+
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
 
       <Card title="Event invitations" hint={events ? `${myEvents.length} of ${events.length} events` : ''}>
         {!events ? (
